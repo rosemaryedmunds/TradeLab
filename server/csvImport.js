@@ -283,13 +283,26 @@ async function importTape(rows) {
     const price = parseFloat(r.fill_price ?? r.price);
     const commission = -Math.abs(parseFloat(r.commission ?? 0)) || 0;
     let qty = parseFloat(r.qty ?? r.quantity ?? r.shares);
+    const netRaw = r.net_amount ?? r.net ?? r.amount;
+    const net = parseFloat(netRaw);
     // If qty missing, derive from net amount: net = qty * price * 100
     if (Number.isNaN(qty) || qty === 0) {
-      const net = parseFloat(r.net_amount ?? r.net ?? r.amount);
       if (!Number.isNaN(net) && price > 0) qty = Math.round(Math.abs(net) / (price * 100));
     }
     if (!symbol || !dt || Number.isNaN(price) || Number.isNaN(qty) || qty <= 0) {
       errors.push(`bad tape row: ${JSON.stringify(r).slice(0,200)}`);
+      continue;
+    }
+    // Some broker tape exports include a row for cash settlement / exercise of
+    // an expired option that does NOT follow the per-fill convention: Net
+    // Amount is 0 while the price column holds the dollar settlement value.
+    // Read literally that produces a 100x phantom gain. Filter any row where
+    // net is explicitly zero but qty*price*100 would be a non-trivial amount;
+    // the auto-expiry branch below settles the open position correctly from
+    // the underlying's close.
+    const expectedNet = qty * price * 100;
+    if (netRaw != null && netRaw !== '' && Math.abs(net) < 0.005 && expectedNet > 50) {
+      errors.push(`skipped settlement/exercise row (net=0, implied=${expectedNet}): ${symbol} ${dt}`);
       continue;
     }
     execs.push({ symbol, dt, side, qty: Math.abs(qty), price, commission });
@@ -365,6 +378,15 @@ async function importTape(rows) {
           const settle = await settlementPrice({ right: parsed.right, strike: parsed.strike, expiry: parsed.expiry });
           if (settle != null && Number.isFinite(settle)) exitPx = Math.round(settle * 100) / 100;
         } catch { /* fall back to $0 worthless */ }
+        const syntheticExecs = [
+          { dt: stillOpen.dt, side: 'BUY', qty: stillOpen.remaining, price: stillOpen.price, commission: buyComm }
+        ];
+        // If the option settled with intrinsic value, record the cash settlement
+        // as a SELL execution. Without it, pnl.js (which sums executions) would
+        // report only the buy cost and miss the settlement credit.
+        if (exitPx > 0) {
+          syntheticExecs.push({ dt: exit_dt, side: 'SELL', qty: stillOpen.remaining, price: exitPx, commission: 0 });
+        }
         trades.push({
           symbol,
           entry_dt: stillOpen.dt,
@@ -374,9 +396,7 @@ async function importTape(rows) {
           exit_price: exitPx,
           commission: buyComm,
           synthetic_exit: 1,
-          execs: [
-            { dt: stillOpen.dt, side: 'BUY', qty: stillOpen.remaining, price: stillOpen.price, commission: buyComm }
-          ]
+          execs: syntheticExecs
         });
         const tag = exitPx > 0 ? `ITM settle @ $${exitPx}` : '$0 worthless';
         errors.push(`auto-closed expired: ${symbol} entry ${stillOpen.dt} → exit ${exit_dt} (${tag})`);
@@ -396,15 +416,30 @@ async function importTape(rows) {
     }
   }
 
+  // When a broker fragments a single buy across multiple closing sells at the
+  // same timestamp and same price, FIFO produces N round trips that share
+  // (symbol, entry_dt, exit_dt, exit_price). Snapshot the pre-existing matching
+  // IDs per key once, then consume them one per duplicate. Without this, trade
+  // #2 dedups against trade #1 just inserted in this batch and silently
+  // overwrites it — N partial fills collapse to 1, lost trades, wrong PnL.
+  const dedupKey = (t) => `${t.symbol}|${t.entry_dt}|${t.exit_dt ?? ''}|${t.exit_price ?? ''}`;
+  const existingByKey = new Map();
+  for (const t of trades) {
+    const k = dedupKey(t);
+    if (existingByKey.has(k)) continue;
+    const rows = t.exit_dt == null
+      ? db.prepare(`SELECT id FROM trades WHERE symbol = ? AND entry_dt = ? AND exit_dt IS NULL ORDER BY id`).all(t.symbol, t.entry_dt)
+      : db.prepare(`SELECT id FROM trades WHERE symbol = ? AND entry_dt = ? AND exit_dt = ? AND ABS(COALESCE(exit_price, -99999) - ?) < 0.00005 ORDER BY id`).all(t.symbol, t.entry_dt, t.exit_dt, t.exit_price ?? 0);
+    existingByKey.set(k, rows.map((r) => r.id));
+  }
+
   const tx = db.transaction(() => {
     for (const t of trades) {
       const parsed = parseOptionDescription(t.symbol);
-      // Dedup: same (symbol, entry_dt) ⇒ update that row, don't duplicate.
-      // Dedup must distinguish round trips that share an entry_dt (a single buy
-      // FIFO-split into multiple closing sells). Include exit_dt + exit_price.
-      const match = findExisting(t.symbol, t.entry_dt, t.exit_dt, t.exit_price);
-      const id = match ? match.id : nextManualId();
-      const exists = !!match;
+      const queue = existingByKey.get(dedupKey(t));
+      const reuseId = queue.length ? queue.shift() : null;
+      const id = reuseId ?? nextManualId();
+      const exists = !!reuseId;
       insertTrade.run({
         id,
         symbol: t.symbol,

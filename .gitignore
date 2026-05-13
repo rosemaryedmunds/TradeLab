@@ -8,8 +8,13 @@ node_modules/
 data/tradelab.db
 data/tradelab.db-shm
 data/tradelab.db-wal
+data/tradelab.db.bak*
 data/tradelab-*.db
 data/candle-cache/
+
+# Broker CSV exports contain account numbers and trade history — never commit.
+*.TRANSACTIONS.*.csv
+*trade-history*.csv
 
 # Logs
 *.log
