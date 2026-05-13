@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b0c0e"/>
+<title>TradeLab · Trades</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0c0e'/%3E%3Ctext x='32' y='44' text-anchor='middle' fill='%23f0b341' font-family='serif' font-size='40'%3EL%3C/text%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="/assets/app.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="/"><span>Trade<span class="dot">·</span>Lab</span><span class="tag">v2</span></a>
+  <div class="nav-links">
+    <a href="/">Overall</a>
+    <a href="/today">Daily</a>
+    <a href="/trades" class="active">Trades</a>
+  </div>
+</nav>
+
+<main class="page">
+  <div class="hero">
+    <span class="eyebrow">Trade database</span>
+    <h1 class="h-title">Trades</h1>
+    <p class="h-sub">Filter, sort, edit, or remove individual trades. Upload IBKR-style execution CSVs or simple flat rows.</p>
+  </div>
+
+  <div class="toolbar">
+    <input id="q" class="text grow" placeholder="search symbol, root, id…"/>
+    <select id="root" class="text" style="max-width:140px"><option value="">All roots</option></select>
+    <input id="from" class="text" type="date" style="max-width:160px"/>
+    <input id="to" class="text" type="date" style="max-width:160px"/>
+    <button class="btn ghost sm" id="clear">clear</button>
+    <button class="btn primary" id="add">+ add trade</button>
+    <button class="btn" id="csv">↑ upload csv</button>
+  </div>
+
+  <div id="status" style="font-size:11px; color: var(--muted); margin-bottom: 12px; letter-spacing:0.08em;"></div>
+
+  <div class="scroll-hint">→ scroll for more columns</div>
+  <div class="tbl-wrap"><table class="tbl" id="tbl">
+    <thead><tr>
+      <th class="sortable" data-k="entry_dt">Date<span class="arrow"></span></th>
+      <th class="sortable" data-k="symbol">Symbol<span class="arrow"></span></th>
+      <th class="sortable" data-k="root">Root<span class="arrow"></span></th>
+      <th class="num sortable" data-k="quantity">Qty<span class="arrow"></span></th>
+      <th class="num sortable" data-k="entry_price">Entry<span class="arrow"></span></th>
+      <th class="num sortable" data-k="exit_price">Exit<span class="arrow"></span></th>
+      <th class="num sortable" data-k="duration_min">Hold<span class="arrow"></span></th>
+      <th class="num sortable" data-k="net_pnl">Net P&amp;L<span class="arrow"></span></th>
+      <th class="num sortable" data-k="pnl_pct">%<span class="arrow"></span></th>
+      <th></th>
+    </tr></thead>
+    <tbody id="tbody"><tr><td colspan="10" class="muted" style="padding:24px;">loading…</td></tr></tbody>
+  </table></div>
+</main>
+
+<script type="module">
+import { fmtUsd, fmtTime, fmtDate } from '/assets/charts.js';
+
+let trades = [];
+let sort = { key: 'entry_dt', dir: 'desc' };
+
+const $ = (s) => document.querySelector(s);
+
+async function load() {
+  const r = await fetch('/api/trades');
+  const j = await r.json();
+  trades = j.trades;
+  populateRoots();
+  render();
+  document.querySelector('.eyebrow').textContent = `Trade database · ${trades.length}`;
+}
+
+function populateRoots() {
+  const set = new Set(trades.map(t => t.root).filter(Boolean));
+  const sel = $('#root');
+  for (const r of [...set].sort()) {
+    const opt = document.createElement('option');
+    opt.value = r; opt.textContent = r;
+    sel.appendChild(opt);
+  }
+}
+
+function applyFilters() {
+  const q = $('#q').value.trim().toLowerCase();
+  const root = $('#root').value;
+  const from = $('#from').value;
+  const to = $('#to').value;
+  return trades.filter(t => {
+    if (q && !((t.symbol||'').toLowerCase().includes(q) || (t.root||'').toLowerCase().includes(q) || t.id.toLowerCase().includes(q))) return false;
+    if (root && t.root !== root) return false;
+    const d = (t.entry_dt||'').slice(0,10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+}
+
+function sortedRows(rows) {
+  const { key, dir } = sort;
+  const mul = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const va = a[key], vb = b[key];
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (typeof va === 'number') return (va - vb) * mul;
+    return String(va).localeCompare(String(vb)) * mul;
+  });
+}
+
+function render() {
+  const rows = sortedRows(applyFilters());
+  $('#status').textContent = `${rows.length} of ${trades.length} trades · net ${fmtUsd(rows.reduce((s,t)=>s+(t.net_pnl||0),0), {signed:true})}`;
+
+  const tbody = $('#tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="muted" style="padding:24px;">no trades match.</td></tr>';
+  } else {
+    tbody.innerHTML = rows.map(t => `
+      <tr data-id="${t.id}">
+        <td><a href="/day/${(t.entry_dt||'').slice(0,10)}">${fmtDate(t.entry_dt)}</a> <span class="muted">${fmtTime(t.entry_dt)}</span></td>
+        <td class="sym">${t.symbol}</td>
+        <td>${t.root||'—'}</td>
+        <td class="num">${t.quantity}</td>
+        <td class="num">${t.entry_price.toFixed(2)}</td>
+        <td class="num">${t.exit_price != null ? t.exit_price.toFixed(2) : '—'}</td>
+        <td class="num muted">${t.duration_min != null ? (t.duration_min >= 60 ? (t.duration_min/60).toFixed(1)+'h' : Math.round(t.duration_min)+'m') : '—'}</td>
+        <td class="num ${t.net_pnl >= 0 ? 'pos' : 'neg'}">${fmtUsd(t.net_pnl, {signed:true})}</td>
+        <td class="num ${t.pnl_pct >= 0 ? 'pos' : 'neg'}">${t.pnl_pct != null ? (t.pnl_pct >= 0 ? '+':'') + t.pnl_pct.toFixed(1)+'%' : '—'}</td>
+        <td class="num row-actions"><button data-act="edit">edit</button><button class="danger" data-act="del">del</button></td>
+      </tr>`).join('');
+  }
+
+  // Sort arrows
+  document.querySelectorAll('.tbl thead th.sortable').forEach(th => {
+    const k = th.dataset.k;
+    th.querySelector('.arrow').textContent = (sort.key === k) ? (sort.dir === 'asc' ? '↑' : '↓') : '';
+  });
+}
+
+// Sort
+document.querySelectorAll('.tbl thead th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    if (sort.key === k) sort.dir = sort.dir === 'asc' ? 'desc' : 'asc';
+    else { sort.key = k; sort.dir = (k === 'entry_dt') ? 'desc' : 'desc'; }
+    render();
+  });
+});
+
+// Filters
+['q','root','from','to'].forEach(id => document.getElementById(id).addEventListener('input', render));
+$('#clear').addEventListener('click', () => {
+  ['q','root','from','to'].forEach(id => document.getElementById(id).value = '');
+  render();
+});
+
+// Row actions
+$('#tbody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const tr = e.target.closest('tr');
+  const id = tr.dataset.id;
+  if (btn.dataset.act === 'del') {
+    if (!confirm(`Delete trade ${id}?`)) return;
+    const r = await fetch('/api/trades/' + id, { method: 'DELETE' });
+    if (r.ok) { toast('Deleted ' + id, 'success'); await load(); }
+    else toast('Delete failed', 'error');
+  } else if (btn.dataset.act === 'edit') {
+    const t = trades.find(x => x.id === id);
+    openTradeModal(t);
+  }
+});
+
+// Add trade
+$('#add').addEventListener('click', () => openTradeModal());
+
+// CSV upload
+$('#csv').addEventListener('click', () => openCsvModal());
+
+function toast(msg, kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+function modal(html) {
+  const back = document.createElement('div');
+  back.className = 'modal-backdrop';
+  back.innerHTML = `<div class="modal">${html}</div>`;
+  document.body.appendChild(back);
+  back.addEventListener('click', (e) => { if (e.target === back) back.remove(); });
+  return back;
+}
+
+function openTradeModal(t = null) {
+  const editing = !!t;
+  const v = t || { symbol: '', root: '', expiry: '', strike: '', right: '', direction: 'long', quantity: 1, entry_dt: '', exit_dt: '', entry_price: '', exit_price: '', commission: 0, notes: '' };
+  const dtVal = (s) => s ? s.slice(0, 16) : '';
+
+  const back = modal(`
+    <h3>${editing ? 'Edit trade · ' + t.id : 'Add trade'}</h3>
+    <div class="modal-grid">
+      <label class="field">Symbol<input class="text" name="symbol" value="${v.symbol || ''}" placeholder="SPY 06JAN26 690 C"/></label>
+      <label class="field">Root<input class="text" name="root" value="${v.root || ''}" placeholder="SPY"/></label>
+      <label class="field">Expiry<input class="text" name="expiry" type="date" value="${v.expiry || ''}"/></label>
+      <label class="field">Strike<input class="text" name="strike" type="number" step="0.01" value="${v.strike != null ? v.strike : ''}"/></label>
+      <label class="field">Right<select class="text" name="right"><option value="">—</option><option ${v.right==='C'?'selected':''}>C</option><option ${v.right==='P'?'selected':''}>P</option></select></label>
+      <label class="field">Direction<select class="text" name="direction"><option ${v.direction!=='short'?'selected':''} value="long">long</option><option ${v.direction==='short'?'selected':''} value="short">short</option></select></label>
+      <label class="field">Quantity<input class="text" name="quantity" type="number" step="any" value="${v.quantity ?? 1}"/></label>
+      <label class="field">Commission<input class="text" name="commission" type="number" step="0.01" value="${v.commission ?? 0}"/></label>
+      <label class="field">Entry datetime<input class="text" name="entry_dt" type="datetime-local" value="${dtVal(v.entry_dt)}"/></label>
+      <label class="field">Exit datetime<input class="text" name="exit_dt" type="datetime-local" value="${dtVal(v.exit_dt)}"/></label>
+      <label class="field">Entry price<input class="text" name="entry_price" type="number" step="0.0001" value="${v.entry_price ?? ''}"/></label>
+      <label class="field">Exit price<input class="text" name="exit_price" type="number" step="0.0001" value="${v.exit_price ?? ''}"/></label>
+    </div>
+    <label class="field" style="margin-top:12px;">Notes<textarea class="text" name="notes" rows="2">${v.notes || ''}</textarea></label>
+    <div class="modal-help">Commission is the total in dollars, typically stored as a negative number (e.g. −1.50).</div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>cancel</button>
+      <button class="btn primary" id="save">${editing ? 'save changes' : 'add trade'}</button>
+    </div>
+  `);
+  back.querySelector('[data-close]').addEventListener('click', () => back.remove());
+  back.querySelector('#save').addEventListener('click', async () => {
+    const form = back.querySelector('.modal');
+    const body = {};
+    form.querySelectorAll('[name]').forEach(el => {
+      let val = el.value;
+      if (['strike','quantity','entry_price','exit_price','commission'].includes(el.name)) {
+        val = val === '' ? null : parseFloat(val);
+      } else if (['entry_dt','exit_dt'].includes(el.name)) {
+        val = val ? val.replace('T', 'T') + ':00' : null;
+      } else {
+        val = val || null;
+      }
+      body[el.name] = val;
+    });
+    if (!body.symbol || !body.entry_dt || body.entry_price == null || body.quantity == null) {
+      toast('symbol, entry_dt, entry_price, quantity required', 'error'); return;
+    }
+    const url = editing ? '/api/trades/' + t.id : '/api/trades';
+    const method = editing ? 'PATCH' : 'POST';
+    const r = await fetch(url, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) { toast('Save failed', 'error'); return; }
+    toast(editing ? 'Updated ' + t.id : 'Added new trade', 'success');
+    back.remove();
+    await load();
+  });
+}
+
+function openCsvModal() {
+  const back = modal(`
+    <h3>Upload CSV</h3>
+    <p class="modal-help" style="margin-bottom:14px;">
+      Two formats are auto-detected:<br>
+      <b>Flat</b> — one row per trade with columns: <code>symbol, entry_dt, exit_dt, quantity, entry_price, exit_price, commission</code> (id, root, expiry, strike, right optional).<br>
+      <b>Executions</b> — IBKR-style ladder rows with <code>side, qty, price, dt</code> grouped by <code>round_trip_id</code>.<br>
+      Datetimes can be ISO (<code>2026-05-11T09:33:21</code>) or space-separated.
+    </p>
+    <input class="text" id="file" type="file" accept=".csv,text/csv" style="padding: 6px;"/>
+    <div class="modal-help" style="margin-top:8px;">— or paste CSV below —</div>
+    <textarea class="text" id="paste" rows="6" placeholder="symbol,entry_dt,exit_dt,quantity,entry_price,exit_price,commission&#10;SPY 06JAN26 690 C,2026-01-06T11:57:58,2026-01-06T12:17:52,3,0.28,0.48,-4.11" style="margin-top:8px;"></textarea>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>cancel</button>
+      <button class="btn primary" id="upload">import</button>
+    </div>
+  `);
+  back.querySelector('[data-close]').addEventListener('click', () => back.remove());
+  back.querySelector('#upload').addEventListener('click', async () => {
+    const f = back.querySelector('#file').files[0];
+    const paste = back.querySelector('#paste').value;
+    let r;
+    if (f) {
+      const fd = new FormData();
+      fd.append('file', f);
+      r = await fetch('/api/trades/import', { method: 'POST', body: fd });
+    } else if (paste.trim()) {
+      r = await fetch('/api/trades/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ csv: paste }) });
+    } else {
+      toast('No CSV provided', 'error'); return;
+    }
+    const j = await r.json();
+    if (!r.ok) { toast(j.error || 'import failed', 'error'); return; }
+    const ok = (j.inserted + j.updated) > 0;
+    if (ok) {
+      toast(`Imported · ${j.inserted} added, ${j.updated} updated, ${j.skipped} skipped (${j.mode})`, 'success');
+      back.remove();
+      await load();
+    } else {
+      // Surface the parser's reasons when nothing landed.
+      const errBlock = back.querySelector('#errblock');
+      const msg = `0 trades imported · mode=${j.mode || '?'} · skipped=${j.skipped}\n\n` +
+                  (j.errors?.length ? 'Errors:\n' + j.errors.join('\n') : 'No detail returned.');
+      if (errBlock) errBlock.textContent = msg;
+      else {
+        const div = document.createElement('pre');
+        div.id = 'errblock';
+        div.style.cssText = 'margin-top:12px; padding:10px; background:var(--ink-2); border:1px solid var(--coral); border-radius:8px; font-size:11px; color:var(--coral); white-space:pre-wrap; max-height:240px; overflow:auto;';
+        div.textContent = msg;
+        back.querySelector('.modal').insertBefore(div, back.querySelector('.modal-actions'));
+      }
+    }
+  });
+}
+
+load();
+</script>
+</body>
+</html>

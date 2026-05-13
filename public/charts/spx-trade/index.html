@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TradeLab Dynamic True SPX Trade Chart</title>
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:dark;--bg:#07080a;--surface:#101216;--surface2:#151821;--line:#2a303b;--text:#f4f1ea;--muted:#9d9a91;--soft:#d8d2c5;--green:#30d158;--red:#ff453a;--amber:#ffd166;--blue:#66a3ff;--cyan:#2ee9ff;--orange:#ff9f0a;--shadow:0 18px 60px rgba(0,0,0,.34);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);min-width:0}body{line-height:1.42;font-feature-settings:"tnum" 1;text-rendering:optimizeLegibility}.page{width:min(100%,1500px);margin:0 auto;padding:clamp(18px,3vw,42px)}.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;margin-bottom:16px}.eyebrow{color:var(--amber);font-weight:850;text-transform:uppercase;letter-spacing:.16em;font-size:12px}.title{font-size:clamp(34px,5vw,68px);font-weight:780;letter-spacing:-.055em;line-height:.94;margin-top:8px}.sub{color:var(--muted);font-weight:560;max-width:960px;margin-top:10px}.badge{border:1px solid var(--line);border-radius:999px;padding:10px 14px;background:#11151d;color:var(--soft);font-weight:800;white-space:nowrap}.toolbar{position:sticky;top:0;z-index:50;margin:14px 0 16px;padding:10px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(10,12,16,.91);backdrop-filter:blur(14px);display:flex;gap:8px;align-items:center;flex-wrap:wrap}.pill,.btn{border:1px solid var(--line);border-radius:999px;min-height:38px;padding:9px 13px;background:#12151c;color:var(--soft);font-weight:780;font-size:13px}.btn{cursor:pointer}.btn:hover,.btn.active{border-color:#647084;color:#fff;background:#1a202b}.btn.buy.active{box-shadow:0 0 0 2px rgba(48,209,88,.16) inset}.btn.put.active{box-shadow:0 0 0 2px rgba(255,209,102,.16) inset}.status{margin-left:auto;color:var(--muted);font-weight:700;font-size:13px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}.panel{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}.chartPanel{padding:14px}.chartTop{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 2px 10px}.chartTitle{font-size:18px;font-weight:850;letter-spacing:-.02em}.chartHint{color:var(--muted);font-size:12px;font-weight:650}.chartWrap{position:relative;border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;background:#080a0e}.chart{height:580px}.phase{height:180px;border-top:1px solid rgba(255,255,255,.08)}.tooltip{position:absolute;z-index:80;display:none;pointer-events:none;max-width:330px;padding:10px 12px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(7,8,10,.94);box-shadow:0 12px 34px rgba(0,0,0,.45);color:var(--soft);font-size:12px;line-height:1.35}.tooltip b{color:#fff}.hit-marker{position:absolute;z-index:70;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.78);border-radius:999px;min-width:34px;height:30px;padding:0 7px;color:#08100b;font-weight:1000;font-size:12px;line-height:28px;text-align:center;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.45);user-select:none}.hit-marker.buy{background:var(--green)}.hit-marker.sell{background:var(--red);color:#fff}.hit-marker.put.buy{background:var(--amber);color:#14100a}.hit-marker:hover,.hit-marker:focus{outline:none;box-shadow:0 0 0 3px rgba(255,255,255,.22),0 8px 24px rgba(0,0,0,.55);filter:brightness(1.12)}.side{padding:16px;display:grid;gap:14px}.metricGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{border:1px solid var(--line);border-radius:16px;background:#11151b;padding:12px}.metric span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:900}.metric b{display:block;font-size:20px;margin-top:5px}.good{color:var(--green)}.bad{color:var(--red)}.amber{color:var(--amber)}.detail{border:1px solid rgba(255,255,255,.1);border-radius:18px;background:#0d1016;padding:14px;min-height:170px}.detail h2{font-size:18px;margin:0 0 8px;letter-spacing:-.02em}.detail .empty{color:var(--muted);font-weight:650}.kv{display:grid;grid-template-columns:92px 1fr;gap:8px 10px;font-size:13px}.kv span{color:var(--muted);font-weight:700}.kv b{font-weight:850}.tradeList{max-height:460px;overflow:auto;display:grid;gap:8px;padding-right:2px}.tradeRow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;text-decoration:none;color:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px;background:#11151b}.tradeRow:hover,.tradeRow.active{border-color:#667286;background:#171d26}.tradeRow small{display:block;color:var(--muted);font-weight:650;margin-top:3px}.tradeRow b{font-size:13px}.note{font-size:12px;color:var(--muted);line-height:1.45;font-weight:560}.footer{margin-top:14px;color:var(--muted);font-size:12px;line-height:1.5}.footer a{color:var(--blue)}@media(max-width:1100px){.layout{grid-template-columns:1fr}.side{grid-template-columns:1fr}.chart{height:520px}.phase{height:160px}.status{width:100%;margin-left:0}.hero{grid-template-columns:1fr}.badge{width:max-content}}@media(max-width:620px){.page{padding:14px}.title{font-size:36px}.toolbar{border-radius:15px}.pill,.btn{font-size:12px;padding:8px 11px}.chartPanel{padding:8px}.chart{height:500px}.phase{height:150px}.metricGrid{grid-template-columns:1fr 1fr}.layout{gap:12px}.hit-marker{min-width:32px;height:28px;font-size:11px;line-height:26px}.chartTop{display:block}.chartHint{margin-top:3px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">TradeLab interactive arrow chart</div>
+      <div class="title" id="pageTitle">SPX trade chart</div>
+      <div class="sub" id="subtitle">Buy/sell arrows are plotted at the exact execution timestamps. Hover or tap/click an arrow for contract, option price, quantity, and time.</div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <a class="badge" href="/" style="color:#ffd166;text-decoration:none">Overall</a>
+      <a class="badge" href="/today" style="color:#ffd166;text-decoration:none">Daily</a>
+      <a class="badge" href="/trades" style="color:#ffd166;text-decoration:none">Manage</a>
+      <div class="badge" id="badge">Loading...</div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="btn buy active" id="toggleCalls">Calls</button>
+    <button class="btn put active" id="togglePuts">Puts</button>
+    <button class="btn" id="showAll">Show all trades</button>
+    <button class="btn" id="resetZoom">Reset zoom</button>
+    <span class="pill" id="selectedPill">All round trips</span>
+    <span class="status" id="status">Loading chart...</span>
+  </div>
+  <div class="layout">
+    <section class="panel chartPanel">
+      <div class="chartTop"><div><div class="chartTitle" id="chartTitle">SPX cash-index candles</div><div class="chartHint">Mouse wheel/trackpad zoom, drag to pan/scroll. Bottom pane: 1m Phase Oscillator -- white line is actual value, green/red bars show above/below zero. Times in CT; source timestamps are ET.</div></div><div class="chartHint" id="rangeHint">1m candles</div></div>
+      <div class="chartWrap" id="chartWrap">
+        <div id="priceChart" class="chart"></div>
+        <div id="phaseChart" class="phase"></div>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+      <div class="footer" id="dataNote"></div>
+    </section>
+    <aside class="panel side">
+      <div class="metricGrid">
+        <div class="metric"><span>Trades visible</span><b id="tradeCount">--</b></div>
+        <div class="metric"><span>Markers visible</span><b id="markerCount">--</b></div>
+        <div class="metric"><span>Visible PnL</span><b id="pnlCount">--</b></div>
+        <div class="metric"><span>Data</span><b id="dataCount">--</b></div>
+      </div>
+      <div class="detail" id="detail"><div class="empty">Hover or tap/click a buy/sell arrow to pin details here.</div></div>
+      <div>
+        <div class="chartTitle" style="font-size:16px;margin-bottom:8px">Round trips</div>
+        <div class="tradeList" id="tradeList"></div>
+      </div>
+      <div class="note" id="sourceNote"></div>
+    </aside>
+  </div>
+</div>
+<script src="/assets/vendor/lightweight-charts.standalone.production.js?v=20260510-032059b"></script>
+<script>
+'use strict';
+const params = new URLSearchParams(location.search);
+function dateFromTrade(id){const m=String(id||'').match(/^(\d{4})(\d{2})(\d{2})-/); return m ? `${m[1]}-${m[2]}-${m[3]}` : '';}
+function normalizeDate(raw){const s=String(raw||'').trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const m=s.match(/^(\d{4})(\d{2})(\d{2})$/); return m ? `${m[1]}-${m[2]}-${m[3]}` : '';}
+const requestDate = normalizeDate(params.get('date')) || dateFromTrade(params.get('trade')) || '2026-05-08';
+const requestTf = String(params.get('interval') || params.get('tf') || '1m').toLowerCase();
+const DATA_URL = `/data/interactive-charts/SPX_${requestDate}_${requestTf}_trade_arrows.json?v=20260510-dynamic-spx`;
+function currentParams(){const p=new URLSearchParams(location.search); p.set('date', payload?.date || requestDate); p.set('interval', payload?.tf || requestTf); return p;}
+function tradeHref(id){const p=currentParams(); if(id)p.set('trade', id); else p.delete('trade'); return `${location.pathname}?${p.toString()}`;}
+function replaceTradeUrl(id){history.replaceState(null, '', tradeHref(id));}
+function parseMinutesParam(raw, fallback){const s=String(raw||'').trim(); if(!s)return fallback; const m=s.match(/^(\d+(?:\.\d+)?)(m|min|mins|minute|minutes)?$/i); return m ? Number(m[1]) : fallback;}
+function hhmm(raw){const m=String(raw||'').trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/); if(!m)return ''; return String(Number(m[1])).padStart(2,'0')+':'+m[2];}
+function timeFromClock(raw, edge){
+  const key=hhmm(raw); if(!key || !payload?.rows?.length)return null;
+  const tz=String(params.get('tz') || 'CT').toUpperCase();
+  const field=tz.includes('ET') || tz.includes('NEW_YORK') ? 'timestamp_et' : 'timestamp_ct';
+  const rows=payload.rows;
+  if(edge==='end'){
+    for(let i=rows.length-1;i>=0;i--){const lab=String(rows[i][field] || '').slice(11,16); if(lab && lab<=key) return rows[i].time;}
+    return rows[rows.length-1].time;
+  }
+  for(const r of rows){const lab=String(r[field] || '').slice(11,16); if(lab && lab>=key) return r.time;}
+  return rows[0].time;
+}
+function explicitRange(){
+  const from=timeFromClock(params.get('start'), 'start');
+  const to=timeFromClock(params.get('end'), 'end');
+  if(from || to) return {from: from || payload.default_range.from, to: to || payload.default_range.to};
+  return null;
+}
+const $ = id => document.getElementById(id);
+let payload, chart, poChart, priceSeries, ema21Series, poLineSeries, poHistogramSeries;
+let connectors = [];
+let visibleCalls = true, visiblePuts = true;
+let selectedTrade = params.get('trade') || '';
+let markerEls = [];
+let syncLock = false;
+window.__chartState = {ready:false, rows:0, events:0, trades:0, markers:0, selectedTrade:selectedTrade, tooltipText:'', detailText:'', wheelBefore:null, wheelAfter:null, panBefore:null, panAfter:null, errors:[]};
+window.addEventListener('error', e => window.__chartState.errors.push(String(e.message || e.error || e)));
+
+function esc(v){return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function money(x,d=0){const n=Number(x||0); return (n>=0?'+$':'-$')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});}
+function pct(x){const n=Number(x||0); return (n>=0?'+':'')+n.toFixed(1)+'%';}
+function cls(x){return Number(x||0)>=0?'good':'bad';}
+function fmtPrice(x){return Number(x||0).toFixed(2);}
+function timeLabel(ts){const d=new Date(ts*1000); return new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'2-digit',minute:'2-digit',hour12:false}).format(d)+' CT';}
+function longTimeLabel(ts){const d=new Date(ts*1000); return new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(d)+' CT';}
+function rightName(r){return String(r||'').toUpperCase()==='P'?'Put':'Call';}
+function isVisibleRight(right){return String(right||'').toUpperCase()==='P' ? visiblePuts : visibleCalls;}
+function selectedTradeObj(){return payload.trades.find(t => t.id === selectedTrade) || null;}
+function inRangeTime(t, range){return !range || (Number(t) >= Number(range.from) && Number(t) <= Number(range.to));}
+function explicitWindowTradeIds(range){
+  if(!range) return null;
+  return new Set(payload.events.filter(e => inRangeTime(e.bar_time, range)).map(e => e.trade_id));
+}
+function visibleTrades(){
+  const range=explicitRange();
+  const idsInWindow=explicitWindowTradeIds(range);
+  return payload.trades.filter(t => (!selectedTrade || t.id === selectedTrade) && isVisibleRight(t.right) && (!idsInWindow || idsInWindow.has(t.id) || (Number(t.entry_bar_time) <= Number(range.to) && Number(t.exit_bar_time) >= Number(range.from))));
+}
+function visibleEvents(){
+  const range=explicitRange();
+  const ids = new Set(visibleTrades().map(t => t.id));
+  return payload.events.filter(e => ids.has(e.trade_id) && isVisibleRight(e.right) && inRangeTime(e.bar_time, range));
+}
+function rowByTime(){return new Map(payload.rows.map(r => [r.time, r]));}
+function candleColor(r){const b=Number(r.candle_bias||0); if(b===1)return '#30d158'; if(b===2)return '#2ee9ff'; if(b===3)return '#ff9f0a'; if(b===4)return '#ff453a'; return '#8e8e93';}
+function waitForLibrary(){return new Promise((resolve,reject)=>{let tries=80; (function tick(){if(window.LightweightCharts)return resolve(); if(--tries<=0)return reject(new Error('LightweightCharts did not load')); setTimeout(tick,100);})();});}
+
+async function init(){
+  try{
+    const res = await fetch(DATA_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('Data fetch failed '+res.status);
+    payload = await res.json();
+    if(!payload || !Array.isArray(payload.rows) || !Array.isArray(payload.trades)) throw new Error('Invalid chart payload');
+    const staleText = JSON.stringify({source:payload.source, scale_note:payload.scale_note, notes:payload.notes, data_symbol:payload.data_symbol});
+    const badEtf = 'S'+'PY';
+    const staleFeedPattern = new RegExp(('pro'+'xy')+'|'+('scaled'+' x10'),'i');
+    if(String(payload.symbol || '').toUpperCase()==='SPX' && (staleText.includes(badEtf) || staleFeedPattern.test(staleText))) throw new Error('Refusing stale non-cash-index payload for SPX chart');
+    if(selectedTrade && !payload.trades.some(t=>t.id===selectedTrade)) selectedTrade='';
+    $('pageTitle').textContent = `${payload.date || requestDate} SPX trades`;
+    await waitForLibrary();
+    buildCharts();
+    wireControls();
+    applyView(true);
+    window.__chartState.ready = true;
+    window.__chartState.rows = payload.rows.length;
+    window.__chartState.events = payload.events.length;
+    window.__chartState.trades = payload.trades.length;
+  }catch(err){
+    console.error(err);
+    window.__chartState.errors.push(String(err.message||err));
+    $('status').textContent = 'Chart error: '+err.message;
+  }
+}
+
+function chartOptions(container, height){
+  return {
+    width: container.clientWidth,
+    height,
+    layout:{background:{type:'solid',color:'#080a0e'},textColor:'#d8d2c5',fontSize:12,fontFamily:'ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif'},
+    grid:{vertLines:{color:'rgba(255,255,255,.055)'},horzLines:{color:'rgba(255,255,255,.07)'}},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal,vertLine:{color:'rgba(255,255,255,.35)',style:2},horzLine:{color:'rgba(255,255,255,.24)',style:2}},
+    rightPriceScale:{borderColor:'#303744',scaleMargins:{top:.08,bottom:.12}},
+    timeScale:{borderColor:'#303744',timeVisible:true,secondsVisible:false,tickMarkFormatter:(time)=>timeLabel(time).replace(' CT',''),rightOffset:8,barSpacing:7,minBarSpacing:.2,fixLeftEdge:false,fixRightEdge:false,lockVisibleTimeRangeOnResize:false},
+    localization:{timeFormatter:(time)=>longTimeLabel(time)},
+    handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:true},
+    handleScale:{axisPressedMouseMove:true,mouseWheel:true,pinch:true},
+  };
+}
+
+function buildCharts(){
+  const pc=$('priceChart'), ph=$('phaseChart');
+  chart = LightweightCharts.createChart(pc, chartOptions(pc, pc.clientHeight || 580));
+  poChart = LightweightCharts.createChart(ph, chartOptions(ph, ph.clientHeight || 180));
+  priceSeries = chart.addCandlestickSeries({
+    upColor:'#30d158',downColor:'#ff453a',borderVisible:false,wickUpColor:'#30d158',wickDownColor:'#ff453a',priceFormat:{type:'price',precision:2,minMove:.01},lastValueVisible:true,priceLineVisible:false
+  });
+  const candles = payload.rows.map(r => ({time:r.time,open:r.open,high:r.high,low:r.low,close:r.close,color:candleColor(r),wickColor:candleColor(r),borderColor:candleColor(r)}));
+  priceSeries.setData(candles);
+  ema21Series = chart.addLineSeries({color:'#f4f1ea',lineWidth:2,lastValueVisible:false,priceLineVisible:false});
+  ema21Series.setData(payload.rows.filter(r => r.ema_21 != null).map(r => ({time:r.time,value:r.ema_21})));
+  addAtrLines();
+  poHistogramSeries = poChart.addHistogramSeries({base:0,priceFormat:{type:'price',precision:2,minMove:.01},lastValueVisible:false,priceLineVisible:false});
+  poHistogramSeries.setData(payload.rows.filter(r => Number.isFinite(Number(r.phase_oscillator))).map(r => ({
+    time:r.time,
+    value:r.phase_oscillator,
+    color:r.phase_oscillator >= 0 ? 'rgba(48,209,88,.58)' : 'rgba(255,69,58,.58)'
+  })));
+  poLineSeries = poChart.addLineSeries({color:'#f4f1ea',lineWidth:2,lastValueVisible:true,priceLineVisible:false,crosshairMarkerVisible:true});
+  poLineSeries.setData(payload.rows.filter(r => Number.isFinite(Number(r.phase_oscillator))).map(r => ({time:r.time,value:r.phase_oscillator})));
+  [-100,-61.8,-23.6,0,23.6,61.8,100].forEach(v=>poLineSeries.createPriceLine({price:v,color:v===0?'#f4f1ea':'rgba(255,255,255,.18)',lineWidth:v===0?1:1,lineStyle:v===0?0:2,axisLabelVisible:v===0,title:String(v)}));
+  chart.timeScale().subscribeVisibleTimeRangeChange(range => { if(syncLock||!range)return; syncLock=true; poChart.timeScale().setVisibleRange(range); syncLock=false; scheduleOverlay(); });
+  poChart.timeScale().subscribeVisibleTimeRangeChange(range => { if(syncLock||!range)return; syncLock=true; chart.timeScale().setVisibleRange(range); syncLock=false; scheduleOverlay(); });
+  chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleOverlay);
+  poChart.timeScale().subscribeVisibleLogicalRangeChange(scheduleOverlay);
+  new ResizeObserver(()=>{ chart.applyOptions({width:pc.clientWidth,height:pc.clientHeight||580}); poChart.applyOptions({width:ph.clientWidth,height:ph.clientHeight||180}); scheduleOverlay(); }).observe($('chartWrap'));
+  $('badge').textContent = `${payload.trade_count} round trips • ${payload.event_count} arrows`;
+  $('chartTitle').textContent = `${payload.symbol} cash-index candles (${payload.data_symbol})`;
+  $('rangeHint').textContent = `${payload.tf} candles • ${payload.date}`;
+  $('dataNote').innerHTML = `<b class="amber">Data note:</b> ${esc(payload.scale_note || payload.source || '')}`;
+  $('sourceNote').innerHTML = `${esc(payload.source || payload.source_note || '')}<br>${esc((payload.notes||[]).find(n=>/redacted/i.test(n)) || '')}`;
+}
+
+function addAtrLines(){
+  const r = payload.rows[0] || {};
+  const lines = [
+    ['PDC', r.prev_close, '#f4f1ea', 1, 2],
+    ['Call trig', r.atr_upper_trigger, '#66a3ff', 2, 0],
+    ['Put trig', r.atr_lower_trigger, '#ffd166', 2, 0],
+    ['+1 ATR', r.atr_upper_100, '#f4f1ea', 2, 2],
+    ['-1 ATR', r.atr_lower_100, '#f4f1ea', 2, 2],
+    ['+0.618', r.atr_upper_0618, 'rgba(102,163,255,.75)', 1, 2],
+    ['-0.618', r.atr_lower_0618, 'rgba(255,209,102,.75)', 1, 2],
+  ];
+  lines.forEach(([title,price,color,lineWidth,lineStyle])=>{ if(Number.isFinite(Number(price))) priceSeries.createPriceLine({price:Number(price),color,lineWidth,lineStyle,axisLabelVisible:true,title}); });
+}
+
+function wireControls(){
+  $('toggleCalls').onclick=()=>{visibleCalls=!visibleCalls; $('toggleCalls').classList.toggle('active', visibleCalls); applyView();};
+  $('togglePuts').onclick=()=>{visiblePuts=!visiblePuts; $('togglePuts').classList.toggle('active', visiblePuts); applyView();};
+  $('showAll').onclick=()=>{selectedTrade=''; replaceTradeUrl(''); applyView(true);};
+  $('resetZoom').onclick=()=>setDefaultRange();
+}
+
+function setDefaultRange(){
+  const custom = explicitRange();
+  if(custom){
+    chart.timeScale().setVisibleRange(custom);
+  } else {
+    const st = selectedTradeObj();
+    if(st){
+      const pad = parseMinutesParam(params.get('pad'), 30)*60;
+      chart.timeScale().setVisibleRange({from:Math.max(payload.default_range.from, st.entry_time-pad), to:Math.min(payload.default_range.to, st.exit_time+pad)});
+    } else {
+      chart.timeScale().setVisibleRange(payload.default_range);
+    }
+  }
+  scheduleOverlay();
+}
+
+function applyView(resetRange=false){
+  const evs=visibleEvents();
+  const trades=visibleTrades();
+  const markers=evs.map(e=>({time:e.bar_time,position:e.marker_position,color:e.marker_color,shape:e.marker_shape,text:`${e.action === 'BUY' ? 'B' : 'S'} ${e.qty_abs} @ ${fmtPrice(e.option_price)}`}));
+  priceSeries.setMarkers(markers);
+  connectors.forEach(s=>chart.removeSeries(s)); connectors=[];
+  const rb=rowByTime();
+  trades.forEach(t=>{
+    if(t.entry_bar_time === t.exit_bar_time) return;
+    const er=rb.get(t.entry_bar_time), xr=rb.get(t.exit_bar_time);
+    if(!er || !xr) return;
+    const s=chart.addLineSeries({color:Number(t.net_pnl)>=0?'rgba(255,209,102,.78)':'rgba(255,69,58,.70)',lineWidth:2,lineStyle:2,lastValueVisible:false,priceLineVisible:false,crosshairMarkerVisible:false});
+    s.setData([{time:t.entry_bar_time,value:er.close},{time:t.exit_bar_time,value:xr.close}]); connectors.push(s);
+  });
+  renderMarkers(evs);
+  renderTradeList(trades);
+  renderMetrics(trades, evs);
+  if(resetRange || !chart.timeScale().getVisibleRange()) setDefaultRange(); else scheduleOverlay();
+}
+
+function renderMetrics(trades, evs){
+  const pnl=trades.reduce((a,t)=>a+Number(t.net_pnl||0),0);
+  $('tradeCount').textContent = `${trades.length}/${payload.trades.length}`;
+  $('markerCount').textContent = `${evs.length}/${payload.events.length}`;
+  $('pnlCount').textContent = money(pnl,2);
+  $('pnlCount').className = cls(pnl);
+  $('dataCount').textContent = `${payload.rows.length} bars`;
+  $('selectedPill').textContent = selectedTrade ? `Trade ${selectedTrade}` : 'All round trips';
+  $('status').textContent = selectedTrade ? `${trades.length}/${payload.trades.length} trades visible • ${evs.length} arrows • ${payload.timezone_display.replace('America/','')} time` : `${trades.length}/${payload.trades.length} trades visible • ${evs.length} arrows • zoom/drag enabled`;
+  window.__chartState.markers = evs.length;
+  window.__chartState.selectedTrade = selectedTrade;
+}
+
+function renderTradeList(trades){
+  const all = payload.trades.filter(t => isVisibleRight(t.right));
+  $('tradeList').innerHTML = all.map(t => `<a class="tradeRow ${selectedTrade===t.id?'active':''}" href="${esc(tradeHref(t.id))}" data-trade="${esc(t.id)}"><span><b>${esc(t.id)} • ${rightName(t.right)} ${esc(t.strike)}</b><small>${esc(t.entry_ct)} → ${esc(t.exit_ct)} • ${t.event_count} arrows</small></span><b class="${cls(t.net_pnl)}">${money(t.net_pnl,0)}</b></a>`).join('');
+  $('tradeList').querySelectorAll('.tradeRow').forEach(a=>{a.addEventListener('click', e=>{e.preventDefault(); selectedTrade=a.dataset.trade; replaceTradeUrl(selectedTrade); applyView(true); const st=selectedTradeObj(); if(st) pinTrade(st);});});
+}
+
+function renderMarkers(evs){
+  markerEls.forEach(el=>el.remove()); markerEls=[];
+  const wrap=$('chartWrap');
+  evs.forEach((e,i)=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className=`hit-marker ${String(e.action).toLowerCase()} ${String(e.right).toUpperCase()==='P'?'put':'call'}`;
+    btn.dataset.eventId=e.id;
+    btn.dataset.idx=String(i);
+    btn.setAttribute('aria-label', `${e.action} ${e.contract} at ${e.time_label_ct} option ${fmtPrice(e.option_price)}`);
+    btn.textContent = `${e.marker_shape==='arrowDown'?'↓':'↑'}${e.action==='BUY'?'B':'S'}`;
+    btn.addEventListener('mouseenter',()=>showTooltip(e,btn));
+    btn.addEventListener('mouseleave',()=>{$('tooltip').style.display='none';});
+    btn.addEventListener('focus',()=>showTooltip(e,btn));
+    btn.addEventListener('blur',()=>{$('tooltip').style.display='none';});
+    btn.addEventListener('click',()=>{showTooltip(e,btn); pinEvent(e);});
+    wrap.appendChild(btn); markerEls.push(btn);
+  });
+  scheduleOverlay();
+}
+
+let overlayTimer=null;
+function scheduleOverlay(){ clearTimeout(overlayTimer); overlayTimer=setTimeout(repositionMarkers, 30); }
+function repositionMarkers(){
+  if(!chart || !priceSeries || !payload) return;
+  const wrap=$('chartWrap'), priceBox=$('priceChart').getBoundingClientRect(), wrapBox=wrap.getBoundingClientRect();
+  const seen=new Map();
+  markerEls.forEach(el=>{
+    const e=payload.events.find(x=>x.id===el.dataset.eventId);
+    if(!e){el.style.display='none';return;}
+    const x=chart.timeScale().timeToCoordinate(e.bar_time);
+    const price=Number(e.anchor_price || e.bar_close || 0);
+    const y=priceSeries.priceToCoordinate(price);
+    if(x==null || y==null || x < -60 || x > priceBox.width + 60){el.style.display='none';return;}
+    const key=e.bar_time+'|'+e.marker_position;
+    const slot=seen.get(key)||0; seen.set(key, slot+1);
+    const dx=(slot%3-1)*17;
+    const dy=e.marker_position==='aboveBar' ? (-22 - Math.floor(slot/3)*24) : (22 + Math.floor(slot/3)*24);
+    el.style.left=(priceBox.left-wrapBox.left+x+dx)+'px';
+    el.style.top=(priceBox.top-wrapBox.top+y+dy)+'px';
+    el.style.display='block';
+  });
+}
+
+function showTooltip(e,el){
+  const t=$('tooltip');
+  t.innerHTML = `<b>${esc(e.action_label)} ${esc(rightName(e.right))}</b><br>${esc(e.contract)}<br>Option @ <b>${fmtPrice(e.option_price)}</b> × ${esc(e.qty_abs)} &nbsp;•&nbsp; ${esc(e.time_label_ct)}<br><span style="color:#9d9a91">Trade ${esc(e.trade_id)} • source ET ${esc(e.time_label_et)}</span>`;
+  const wrap=$('chartWrap').getBoundingClientRect(), r=el.getBoundingClientRect();
+  let left=r.left-wrap.left+18, top=r.top-wrap.top-12;
+  if(left+330>wrap.width) left=Math.max(8,wrap.width-340);
+  if(top<8) top=r.bottom-wrap.top+10;
+  t.style.left=left+'px'; t.style.top=top+'px'; t.style.display='block';
+  window.__chartState.tooltipText = t.innerText;
+}
+
+function pinEvent(e){
+  const tr=payload.trades.find(t=>t.id===e.trade_id) || {};
+  const html = `<h2>${esc(e.action_label)} ${esc(rightName(e.right))} arrow</h2><div class="kv"><span>Time</span><b>${esc(e.time_label_ct)} <span style="color:#9d9a91;font-weight:700">(${esc(e.time_label_et)})</span></b><span>Contract</span><b>${esc(e.contract)}</b><span>Option px</span><b>${fmtPrice(e.option_price)}</b><span>Quantity</span><b>${esc(e.qty_abs)} contract${Number(e.qty_abs)===1?'':'s'}</b><span>Trade id</span><b>${esc(e.trade_id)}</b><span>Trade PnL</span><b class="${cls(tr.net_pnl)}">${money(tr.net_pnl,2)} / ${pct(tr.pnl_pct)}</b><span>Entry → exit</span><b>${fmtPrice(tr.entry_price)} → ${fmtPrice(tr.exit_price)}</b><span>Source</span><b>${esc((e.lines||[]).length ? 'IBKR lines '+e.lines.join(', ') : 'IBKR execution ladder')} • broker IDs omitted</b></div>`;
+  $('detail').innerHTML=html;
+  window.__chartState.detailText = $('detail').innerText;
+}
+function pinTrade(t){
+  const html = `<h2>${esc(t.id)} • ${esc(rightName(t.right))}</h2><div class="kv"><span>Contract</span><b>${esc(t.symbol)}</b><span>Time</span><b>${esc(t.entry_ct)} → ${esc(t.exit_ct)}</b><span>Option px</span><b>${fmtPrice(t.entry_price)} → ${fmtPrice(t.exit_price)}</b><span>Quantity</span><b>${esc(t.quantity)}</b><span>Net PnL</span><b class="${cls(t.net_pnl)}">${money(t.net_pnl,2)} / ${pct(t.pnl_pct)}</b><span>Arrows</span><b>${esc(t.event_count)} execution marker${t.event_count===1?'':'s'}</b></div>`;
+  $('detail').innerHTML=html;
+  window.__chartState.detailText = $('detail').innerText;
+}
+
+// Test helpers for browser/CDP verification.
+window.__tradelabTest = {
+  getRange(){return chart ? chart.timeScale().getVisibleLogicalRange() : null;},
+  firstMarkerRect(){const el=document.querySelector('.hit-marker'); return el ? el.getBoundingClientRect().toJSON() : null;},
+  hoverFirst(){const el=document.querySelector('.hit-marker'); if(!el)return false; el.dispatchEvent(new MouseEvent('mouseenter',{bubbles:true})); return true;},
+  clickFirst(){const el=document.querySelector('.hit-marker'); if(!el)return false; el.click(); return true;},
+  markerCount(){return document.querySelectorAll('.hit-marker').length;}
+};
+
+init();
+</script>
+</body>
+</html>

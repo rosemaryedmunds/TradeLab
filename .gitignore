@@ -1,0 +1,30 @@
+node_modules/
+
+# Local environment
+.env
+.env.local
+
+# Runtime data — never commit. The DB is the entire trading history.
+data/tradelab.db
+data/tradelab.db-shm
+data/tradelab.db-wal
+data/tradelab-*.db
+data/candle-cache/
+
+# Logs
+*.log
+.pm2/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# Optional: keep the legacy chart-arrow JSONs out — they're regenerated
+# dynamically from the API at /data/interactive-charts/... and the static
+# copies retain trade IDs and PnL baked in from the original site.
+public/data/interactive-charts/SPX_*_trade_arrows.json*
+public/data/clean-chart/SPX_*_trades.json
+
+# Moved-aside legacy artifacts; not for sharing
+.local-cache/

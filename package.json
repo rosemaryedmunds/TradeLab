@@ -1,0 +1,23 @@
+{
+  "name": "tradelab",
+  "version": "1.0.0",
+  "main": "server/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/index.js",
+    "seed": "node scripts/seed-from-html.js",
+    "dev": "node --watch server/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Portable trading-database dashboard",
+  "dependencies": {
+    "better-sqlite3": "12.10.0",
+    "csv-parse": "6.2.1",
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "multer": "2.1.1"
+  }
+}
