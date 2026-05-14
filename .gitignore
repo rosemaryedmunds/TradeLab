@@ -33,3 +33,7 @@ public/data/clean-chart/SPX_*_trades.json
 
 # Moved-aside legacy artifacts; not for sharing
 .local-cache/
+
+# Build outputs — ship via GitHub Releases, not git.
+dist/
+build-cache/

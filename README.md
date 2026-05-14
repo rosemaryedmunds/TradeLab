@@ -2,7 +2,9 @@
 
 A portable, DB-backed dashboard for tracking, importing, and analyzing options trades. SQLite + Node/Express + vanilla JS. No build step.
 
-**Run it without installing anything:** [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Fprsdro%2FTradeLab) — see [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md) for the 5-minute walkthrough, including a copy-paste Claude Code prompt that does the whole deploy for you.
+**Run it without installing anything:**
+- **In the cloud** — [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Fprsdro%2FTradeLab) — see [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md) for the 5-minute walkthrough (plus a copy-paste Claude Code prompt that does the whole deploy for you).
+- **On your own Windows PC** — download `TradeLab-windows.zip` from [Releases](https://github.com/prsdro/TradeLab/releases), unzip, double-click `Start TradeLab.bat`. Your trade data never leaves your computer. See [DEPLOY-WINDOWS.md](DEPLOY-WINDOWS.md).
 
 **Features**
 - Upload broker tape CSVs (one row per fill); FIFO-matched into round trips with proper dedup

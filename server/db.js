@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.TRADELAB_DB || path.join(__dirname, '..', 'data', 'tradelab.db');
+const DATA_DIR = process.env.TRADELAB_DATA_DIR || path.join(__dirname, '..', 'data');
+const DB_PATH = process.env.TRADELAB_DB || path.join(DATA_DIR, 'tradelab.db');
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 

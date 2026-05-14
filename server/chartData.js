@@ -12,7 +12,8 @@ import { applyPivotRibbon, applyPhaseOscillator, applyAtrLevels } from './indica
 
 const execFileP = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_DIR = path.join(__dirname, '..', 'data', 'candle-cache');
+const DATA_DIR = process.env.TRADELAB_DATA_DIR || path.join(__dirname, '..', 'data');
+const CACHE_DIR = path.join(DATA_DIR, 'candle-cache');
 fs.mkdirSync(CACHE_DIR, { recursive: true });
 
 const MASSIVE_BASE = 'https://api.massive.com';

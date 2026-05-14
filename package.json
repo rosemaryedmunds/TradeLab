@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/index.js",
     "seed": "node scripts/seed-from-html.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "build:windows": "node scripts/build-portable.mjs"
   },
   "keywords": [],
   "author": "",
