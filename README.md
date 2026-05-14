@@ -2,6 +2,8 @@
 
 A portable, DB-backed dashboard for tracking, importing, and analyzing options trades. SQLite + Node/Express + vanilla JS. No build step.
 
+**Run it without installing anything:** [![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Fprsdro%2FTradeLab) — see [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md) for the 5-minute walkthrough, including a copy-paste Claude Code prompt that does the whole deploy for you.
+
 **Features**
 - Upload broker tape CSVs (one row per fill); FIFO-matched into round trips with proper dedup
 - 0DTE auto-expiry settles at actual SPX intrinsic value (via Massive.com API), not blindly at $0
