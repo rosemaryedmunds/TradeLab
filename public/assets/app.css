@@ -208,7 +208,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabula
 .tbl .sym { font-weight: 600; }
 .row-actions button { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 4px 8px; border-radius: 6px; font-family: var(--mono); font-size: 11px; cursor: pointer; margin-left: 6px; }
 .row-actions button:hover { color: var(--text); border-color: var(--text); }
+.row-actions button.primary-mini { color: var(--amber); border-color: #f0b34155; background: var(--amber-soft); }
+.row-actions button.primary-mini:hover { color: #1a1500; border-color: var(--amber); background: var(--amber); }
 .row-actions button.danger:hover { color: var(--coral); border-color: var(--coral); }
+.tbl tbody tr[data-id] { cursor: pointer; }
 
 /* ---------- buttons & inputs ---------- */
 .btn {
@@ -251,6 +254,11 @@ label.field { display: flex; flex-direction: column; gap: 6px; font-size: 11px; 
   animation: rise 220ms cubic-bezier(.2,.7,.2,1);
 }
 .modal h3 { font-family: var(--serif); font-weight: 400; font-size: 24px; margin: 0 0 16px; }
+.share-tools { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin: 0 0 14px; }
+.share-tools label { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+.share-tools input { accent-color: var(--amber); }
+.share-stage { display:flex; justify-content:center; padding:14px; border:1px solid var(--line-soft); border-radius: var(--r); background:#07080a; overflow:auto; }
+.share-svg { display:block; width:min(430px, 100%); height:auto; filter: drop-shadow(0 22px 44px rgba(0,0,0,.34)); }
 .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 520px) { .modal-grid { grid-template-columns: 1fr; } }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line-soft); }

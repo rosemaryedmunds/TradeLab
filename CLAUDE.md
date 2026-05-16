@@ -51,6 +51,8 @@ GET /data/interactive-charts/SPX_<date>_1m_trade_arrows.json
 
 3. **Trades with `exit_dt: NULL` are filtered out of legacy dashboards.** `toMs(null)` returns `NaN`, which breaks every Math.min/max and date sort downstream. Always run new open trades through the auto-expiry path or leave them excluded.
 
+3a. **`entry_dt` / `exit_dt` are stored in Eastern Time, not Central.** IBKR exports in ET. All three dashboards (`/`, `/today/`, `/csv/`) parse the raw string with `parseSourceMs()` (SOURCE_TZ = `America/New_York`) and bucket against CT via `tzParts(ms, 'America/Chicago')`. `cstHM`, `cstMinutes`, `cstTimeLabel`, and `sessionBucket` all read CT-converted hours. Slicing `s.slice(11,13)` directly off `entry_dt` gives the ET hour and is wrong for any RTH bucketing — always go through the helpers.
+
 4. **CSV dedup key = `(symbol, entry_dt, exit_dt, exit_price)`.** A single buy that's FIFO-split into N closing sells produces N rows with the same `entry_dt` but different `exit_dt`/`exit_price` — they must remain distinct. Don't simplify back to `(symbol, entry_dt)` (that bug cost ~$150 in lost trades during initial development).
 
 5. **In tape-format imports, sort fills by `(dt asc, BUY before SELL)`.** Broker tapes round to the minute, and the file is often reverse-chronological. Without the BUY-first tiebreak, FIFO sees a SELL with no open position and drops the round trip.

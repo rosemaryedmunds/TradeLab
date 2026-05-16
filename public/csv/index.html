@@ -15,7 +15,7 @@
 .scatter-wrap{position:relative}.selectionBox{position:absolute;border:1.5px solid #fff;background:rgba(102,163,255,.16);pointer-events:none;display:none}.selectActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}.selectActions .pill{min-height:38px;padding:8px 12px}.small{font-size:12px;color:var(--muted);font-weight:620}.scenarioBox{margin-top:14px;padding:14px 16px;border:1px solid rgba(255,209,102,.35);border-radius:16px;background:rgba(255,209,102,.07);color:var(--soft);font-size:13px;font-weight:560;line-height:1.5}.scenarioBox b{color:var(--amber)}.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:650}.sw{width:18px;height:10px;border-radius:99px;display:inline-block}.sw.g{background:var(--green)}.sw.r{background:var(--red)}
 table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:14px}th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;padding:0 10px;font-weight:800}td{background:#13151a;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 10px;font-weight:620}td:first-child{border-left:1px solid var(--line);border-radius:12px 0 0 12px}td:last-child{border-right:1px solid var(--line);border-radius:0 12px 12px 0}.ticks{display:flex;gap:4px;flex-wrap:wrap}.tick{width:9px;height:28px;border-radius:6px}.tick.w{background:var(--green)}.tick.l{background:var(--red)}.tick.excluded{opacity:.18}.mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.hour{border:1px solid var(--line);border-radius:15px;padding:13px;text-align:center;background:#13151a}.hour b,.hour span{display:block}.hour b{font-size:13px}.hour span{font-size:12px;color:var(--muted);font-weight:620;margin-top:5px}.modal{position:fixed;inset:0;background:rgba(4,5,7,.88);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}.modal.open{display:flex}.modalCard{width:min(96vw,1320px);max-height:92vh;overflow:auto;background:#111317;border:1px solid #3a404b;border-radius:26px;padding:26px}.close{float:right;border:1px solid var(--line);background:#15171b;color:var(--soft);border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}.foot{color:var(--muted);font-size:13px;font-weight:520;line-height:1.55;margin:24px 2px 0}
 @media (max-width:1050px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.grid{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.status{margin-left:0;width:100%}.mini{grid-template-columns:repeat(2,minmax(0,1fr))}.hint{max-width:100%}}
-@media (max-width:620px){.page{padding:18px;overflow:hidden}.cards{grid-template-columns:1fr;gap:11px}.metric,.panel{padding:16px;border-radius:16px}.val{font-size:clamp(18px,5vw,22px);letter-spacing:-.055em;white-space:normal}.filterbar{border-radius:16px}.pill{font-size:12px;min-height:38px}.calgrid{gap:7px}.day{padding:9px;min-height:78px;border-radius:13px}.day span{font-size:12px}.day em{font-size:10px}.title{font-size:clamp(34px,12vw,48px);letter-spacing:-.045em;overflow-wrap:anywhere}.sub,.hint{overflow-wrap:anywhere}.expand{display:none}.panel h2{padding-right:0}.badge{display:none}table{font-size:12px}.hide-mobile{display:none}}
+@media (max-width:620px){.page{padding:18px;overflow:hidden}.cards{grid-template-columns:1fr;gap:11px}.metric,.panel{padding:16px;border-radius:16px}.val{font-size:clamp(18px,5vw,22px);letter-spacing:-.055em;white-space:normal}.filterbar{border-radius:16px}.pill{font-size:12px;min-height:38px}.calgrid{gap:7px}.day{padding:9px;min-height:78px;border-radius:13px}.day span{font-size:12px}.day em{font-size:10px}.title{font-size:clamp(34px,12vw,48px);letter-spacing:-.045em;overflow-wrap:anywhere}.sub,.hint{overflow-wrap:anywhere}.expand{display:none}.panel h2{padding-right:0}.badge:not(a){display:none}a.badge{padding:8px 12px;font-size:12px;margin-left:6px!important}table{font-size:12px}.hide-mobile{display:none}.hero{grid-template-columns:1fr;gap:14px}}
 
 </style></head><body>
 <div class="page">
@@ -66,11 +66,15 @@ const $ = id => document.getElementById(id);
 const money = (x,d=0) => (x>=0?'+$':'-$') + Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct = x => (x>=0?'+':'') + x.toFixed(1) + '%';
 function cls(x){return x>=0?'good':'bad'}
-// Raw entry_dt strings come from IBKR trade-history exports in user's local Central Time wall-clock.
-// We treat them as Central Time, label them as CST, and bucket against CST RTH boundaries (8:30-15:00).
-function cstHM(s){return {h:+s.slice(11,13), m:+s.slice(14,16)};}
+// Raw entry_dt / exit_dt strings come from IBKR exports in Eastern Time. We
+// convert to Central for display and RTH bucketing (8:30-15:00 CT).
+const SOURCE_TZ='America/New_York', DISPLAY_TZ='America/Chicago';
+function tzParts(ms,timeZone){const out={}, f=new Intl.DateTimeFormat('en-CA',{timeZone,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); for(const p of f.formatToParts(new Date(ms))) out[p.type]=p.value; if(out.hour==='24') out.hour='00'; return out;}
+function tzOffsetMinutes(ms,timeZone){const p=tzParts(ms,timeZone); const asUTC=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second); return (asUTC-ms)/60000;}
+function parseSourceMs(s){if(typeof s==='number') return s; const str=String(s||'').trim(); if(!str) return NaN; if(/Z$|[+-]\d{2}:?\d{2}$/.test(str)) return Date.parse(str.replace(' ','T')); const m=str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); if(!m) return Date.parse(str.replace(' ','T')); const naive=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)); let off=tzOffsetMinutes(naive,SOURCE_TZ); let ms=naive-off*60000; const off2=tzOffsetMinutes(ms,SOURCE_TZ); if(off2!==off) ms=naive-off2*60000; return ms;}
+function cstHM(s){const p=tzParts(parseSourceMs(s),DISPLAY_TZ); return {h:+p.hour, m:+p.minute};}
 function cstMinutes(s){const t=cstHM(s); return t.h*60+t.m;}
-function cstTimeLabel(s){const t=cstHM(s); return String(t.h).padStart(2,'0')+':'+String(t.m).padStart(2,'0')+' CST';}
+function cstTimeLabel(s){const t=cstHM(s); return String(t.h).padStart(2,'0')+':'+String(t.m).padStart(2,'0')+' CT';}
 function sessionBucket(s){const m=cstMinutes(s); if(m>=510&&m<690)return 'Morning'; if(m>=690&&m<840)return 'Midday'; if(m>=840&&m<885)return 'Power hour'; if(m>=885&&m<=900)return 'End of day'; return 'Outside RTH';}
 const toMs = s => new Date(s.replace(' ','T')).getTime();
 const fmtDT = s => s.slice(5,10)+' '+cstTimeLabel(s);
@@ -288,7 +292,7 @@ function wireScatterBox(scale){
     liveSvg.querySelectorAll('.dot[data-active="1"]').forEach(dot=>{
       const dr=dot.getBoundingClientRect();
       const cx=dr.left+dr.width/2, cy=dr.top+dr.height/2;
-      if(cx>=br.left&&cx<=br.right&&cy>=br.top&&cy<=br.bottom) pendingSelection.add(+dot.dataset.id);
+      if(cx>=br.left&&cx<=br.right&&cy>=br.top&&cy<=br.bottom) pendingSelection.add(dot.dataset.id);
     });
     start=null; box.style.display='none';
     $('selectionCount').textContent=pendingSelection.size?`${pendingSelection.size} dots selected`:'No dots selected';

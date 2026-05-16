@@ -71,6 +71,11 @@ async function load() {
   populateRoots();
   render();
   document.querySelector('.eyebrow').textContent = `Trade database · ${trades.length}`;
+  const requestedTrade = new URLSearchParams(location.search).get('trade');
+  if (requestedTrade && trades.some(t => t.id === requestedTrade)) {
+    history.replaceState(null, '', '/trades');
+    setTimeout(() => openShareModal(requestedTrade), 80);
+  }
 }
 
 function populateRoots() {
@@ -130,7 +135,7 @@ function render() {
         <td class="num muted">${t.duration_min != null ? (t.duration_min >= 60 ? (t.duration_min/60).toFixed(1)+'h' : Math.round(t.duration_min)+'m') : '—'}</td>
         <td class="num ${t.net_pnl >= 0 ? 'pos' : 'neg'}">${fmtUsd(t.net_pnl, {signed:true})}</td>
         <td class="num ${t.pnl_pct >= 0 ? 'pos' : 'neg'}">${t.pnl_pct != null ? (t.pnl_pct >= 0 ? '+':'') + t.pnl_pct.toFixed(1)+'%' : '—'}</td>
-        <td class="num row-actions"><button data-act="edit">edit</button><button class="danger" data-act="del">del</button></td>
+        <td class="num row-actions"><button class="primary-mini" data-act="share">card</button><button data-act="edit">edit</button><button class="danger" data-act="del">del</button></td>
       </tr>`).join('');
   }
 
@@ -160,10 +165,14 @@ $('#clear').addEventListener('click', () => {
 
 // Row actions
 $('#tbody').addEventListener('click', async (e) => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  const tr = e.target.closest('tr');
+  const tr = e.target.closest('tr[data-id]');
+  if (!tr) return;
   const id = tr.dataset.id;
+  const btn = e.target.closest('button');
+  if (!btn) {
+    if (!e.target.closest('a')) openShareModal(id);
+    return;
+  }
   if (btn.dataset.act === 'del') {
     if (!confirm(`Delete trade ${id}?`)) return;
     const r = await fetch('/api/trades/' + id, { method: 'DELETE' });
@@ -172,8 +181,160 @@ $('#tbody').addEventListener('click', async (e) => {
   } else if (btn.dataset.act === 'edit') {
     const t = trades.find(x => x.id === id);
     openTradeModal(t);
+  } else if (btn.dataset.act === 'share') {
+    openShareModal(id);
   }
 });
+
+
+function money(v, signed = true) {
+  if (v == null || !Number.isFinite(Number(v))) return 'n/a';
+  const n = Number(v);
+  const s = '$' + Math.abs(n).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  return signed ? (n >= 0 ? '+' + s : '-' + s) : s;
+}
+function pct(v) {
+  if (v == null || !Number.isFinite(Number(v))) return 'n/a';
+  return (v >= 0 ? '+' : '') + Number(v).toFixed(1) + '%';
+}
+function price(v) { return v == null ? 'n/a' : Number(v).toFixed(2); }
+function dtLabel(s) { return s ? `${fmtDate(s)} ${fmtTime(s)} CT` : 'n/a'; }
+function timeOnly(s) { return s ? `${fmtTime(s)} CT` : 'n/a'; }
+function holdLabel(minutes) {
+  if (minutes == null || !Number.isFinite(Number(minutes))) return 'n/a';
+  const sec = Math.max(0, Math.round(Number(minutes) * 60));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), r = sec % 60;
+  return h ? `${h}h ${m}m` : `${m}m ${r}s`;
+}
+function contractLabel(t) {
+  const side = t.right === 'C' ? 'Call' : (t.right === 'P' ? 'Put' : 'Option');
+  if (t.expiry && t.strike) return `${t.root || ''} ${t.expiry} ${Number(t.strike).toLocaleString()} ${side}`.trim();
+  return t.symbol || t.id;
+}
+function xesc(s) {
+  return String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+}
+function executionRows(t, executions) {
+  const rows = (executions && executions.length) ? executions : [
+    {side:'BUY', qty:t.quantity, price:t.entry_price, dt:t.entry_dt},
+    {side:'SELL', qty:t.quantity, price:t.exit_price, dt:t.exit_dt}
+  ].filter(x => x.dt);
+  return rows.slice(0, 8).map((e, i) => {
+    const side = String(e.side || '').toUpperCase().includes('BUY') ? 'IN' : 'OUT';
+    return {label: `${side} ${i + 1}`, time: timeOnly(e.dt), qty: e.qty ?? t.quantity, price: price(e.price), side};
+  });
+}
+function shareSvg(t, executions = [], showDollars = true) {
+  const win = Number(t.net_pnl || 0) >= 0;
+  const accent = win ? '#8fd49a' : '#f08274';
+  const shadow = win ? '#8fd49a22' : '#f0827422';
+  const rows = executionRows(t, executions);
+  const dollarBlocks = showDollars ? `
+    <g transform="translate(28 408)">
+      <rect width="374" height="74" rx="18" fill="#111316" stroke="#262a31"/>
+      <text x="18" y="26" fill="#8a857a" font-size="10" letter-spacing="1.8">NET PROFIT</text>
+      <text x="18" y="56" fill="${accent}" font-family="Georgia" font-size="31">${xesc(money(t.net_pnl))}</text>
+      <text x="224" y="26" fill="#8a857a" font-size="10" letter-spacing="1.8">GROSS</text>
+      <text x="224" y="56" fill="#f1ece1" font-size="18">${xesc(money(t.gross_pnl))}</text>
+    </g>` : '';
+  const metricY = showDollars ? 504 : 408;
+  const ladderY = metricY + 118;
+  const rowSvg = rows.map((r, i) => {
+    const y = ladderY + i * 38;
+    const c = r.side === 'IN' ? '#7aa8d8' : accent;
+    return `<g transform="translate(28 ${y})"><circle cx="9" cy="12" r="5" fill="${c}"/><text x="25" y="16" fill="#f1ece1" font-size="13" font-weight="700">${xesc(r.label)}</text><text x="102" y="16" fill="#d8d2c5" font-size="13">${xesc(r.qty)} @ ${xesc(r.price)}</text><text x="374" y="16" text-anchor="end" fill="#8a857a" font-size="12">${xesc(r.time)}</text></g>`;
+  }).join('');
+  const h = Math.max(760, ladderY + rows.length * 38 + 92);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="430" height="${h}" viewBox="0 0 430 ${h}" class="share-svg" role="img" aria-label="Trade result card">
+    <defs>
+      <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#17120b"/><stop offset="0.45" stop-color="#090b0d"/><stop offset="1" stop-color="#10161b"/></linearGradient>
+      <radialGradient id="glow" cx="76%" cy="8%" r="68%"><stop offset="0" stop-color="${shadow}"/><stop offset="1" stop-color="#00000000"/></radialGradient>
+      <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#ffffff" stroke-opacity="0.045"/></pattern>
+    </defs>
+    <rect width="430" height="${h}" rx="34" fill="url(#bg)"/>
+    <rect width="430" height="${h}" rx="34" fill="url(#glow)"/>
+    <rect x="0" y="0" width="430" height="${h}" rx="34" fill="url(#grid)"/>
+    <rect x="18" y="18" width="394" height="${h-36}" rx="28" fill="none" stroke="#f0b34133"/>
+    <text x="28" y="58" fill="#f0b341" font-size="11" font-weight="700" letter-spacing="2.4">TRADELAB RESULT</text>
+    <text x="402" y="58" fill="#8a857a" font-size="10" text-anchor="end">${xesc(t.id)}</text>
+    <text x="28" y="104" fill="#f1ece1" font-family="Georgia" font-size="30">${xesc(t.root || 'TRADE')}</text>
+    <text x="28" y="140" fill="#d8d2c5" font-size="15">${xesc(contractLabel(t))}</text>
+    <text x="28" y="205" fill="${accent}" font-family="Georgia" font-size="70" letter-spacing="-3">${xesc(pct(t.pnl_pct))}</text>
+    <text x="32" y="231" fill="#8a857a" font-size="12" letter-spacing="1.5">RETURN ON DEPLOYED CAPITAL</text>
+    <g transform="translate(28 258)">
+      <rect width="178" height="108" rx="18" fill="#15181c" stroke="#262a31"/><rect x="196" width="178" height="108" rx="18" fill="#15181c" stroke="#262a31"/>
+      <text x="16" y="29" fill="#8a857a" font-size="10" letter-spacing="1.6">ENTRY</text><text x="16" y="57" fill="#f1ece1" font-size="21">${xesc(price(t.entry_price))}</text><text x="16" y="84" fill="#8a857a" font-size="11">${xesc(dtLabel(t.entry_dt))}</text>
+      <text x="212" y="29" fill="#8a857a" font-size="10" letter-spacing="1.6">EXIT</text><text x="212" y="57" fill="#f1ece1" font-size="21">${xesc(price(t.exit_price))}</text><text x="212" y="84" fill="#8a857a" font-size="11">${xesc(dtLabel(t.exit_dt))}</text>
+    </g>
+    ${dollarBlocks}
+    <g transform="translate(28 ${metricY})">
+      <rect width="118" height="78" rx="16" fill="#15181c" stroke="#262a31"/><text x="15" y="27" fill="#8a857a" font-size="10" letter-spacing="1.4">CONTRACTS</text><text x="15" y="57" fill="#f1ece1" font-size="24">${xesc(t.quantity)}</text>
+      <rect x="128" width="118" height="78" rx="16" fill="#15181c" stroke="#262a31"/><text x="143" y="27" fill="#8a857a" font-size="10" letter-spacing="1.4">HOLD</text><text x="143" y="57" fill="#f1ece1" font-size="20">${xesc(holdLabel(t.duration_min))}</text>
+      <rect x="256" width="118" height="78" rx="16" fill="#15181c" stroke="#262a31"/><text x="271" y="27" fill="#8a857a" font-size="10" letter-spacing="1.4">TICKER</text><text x="271" y="57" fill="#f1ece1" font-size="22">${xesc(t.root || '—')}</text>
+    </g>
+    <text x="28" y="${ladderY - 18}" fill="#f0b341" font-size="11" font-weight="700" letter-spacing="2">EXECUTION LADDER</text>
+    <line x1="37" y1="${ladderY - 3}" x2="37" y2="${ladderY + Math.max(0, rows.length - 1) * 38 + 16}" stroke="#262a31" stroke-width="2"/>
+    ${rowSvg}
+    <text x="28" y="${h - 46}" fill="#8a857a" font-size="10">Times shown in Central Time. Source: TradeLab database.</text>
+    <text x="28" y="${h - 27}" fill="#5d5950" font-size="10">Not financial advice.</text>
+    <text x="402" y="${h - 27}" text-anchor="end" fill="#f0b341" font-family="Georgia" font-size="18">Trade·Lab</text>
+  </svg>`;
+}
+async function openShareModal(id) {
+  const r = await fetch('/api/trades/' + encodeURIComponent(id));
+  if (!r.ok) { toast('Could not load trade card', 'error'); return; }
+  const { trade, executions } = await r.json();
+  let showDollars = true;
+  const back = modal(`
+    <h3>Share card · ${xesc(trade.id)}</h3>
+    <div class="share-tools">
+      <label><input type="checkbox" id="showDollars" checked/> show $ profit</label>
+      <button class="btn sm" id="copyLink">copy trade link</button>
+      <button class="btn sm primary" id="downloadPng">download PNG</button>
+    </div>
+    <div class="share-stage" id="shareStage"></div>
+    <div class="modal-help">Tip: uncheck $ profit for a percent-only social card. The PNG export uses the exact card shown here.</div>
+    <div class="modal-actions"><button class="btn ghost" data-close>close</button></div>
+  `);
+  const stage = back.querySelector('#shareStage');
+  const draw = () => { stage.innerHTML = shareSvg(trade, executions, showDollars); };
+  draw();
+  back.querySelector('[data-close]').addEventListener('click', () => back.remove());
+  back.querySelector('#showDollars').addEventListener('change', (e) => { showDollars = e.target.checked; draw(); });
+  back.querySelector('#copyLink').addEventListener('click', async () => {
+    const url = `${location.origin}/trades?trade=${encodeURIComponent(trade.id)}`;
+    await navigator.clipboard.writeText(url);
+    toast('Trade link copied', 'success');
+  });
+  back.querySelector('#downloadPng').addEventListener('click', () => downloadSharePng(stage.querySelector('svg'), trade.id));
+}
+function downloadSharePng(svg, id) {
+  const xml = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([xml], {type:'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = svg.viewBox.baseVal.width || 430;
+    canvas.height = svg.viewBox.baseVal.height || svg.height.baseVal.value || 760;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob((png) => {
+      if (!png) { toast('PNG export failed', 'error'); return; }
+      const a = document.createElement('a');
+      const pngUrl = URL.createObjectURL(png);
+      a.href = pngUrl;
+      a.download = `tradelab-${id}-share-card.png`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(pngUrl); a.remove(); }, 3000);
+      toast('PNG downloaded', 'success');
+    }, 'image/png');
+  };
+  img.src = url;
+}
 
 // Add trade
 $('#add').addEventListener('click', () => openTradeModal());
