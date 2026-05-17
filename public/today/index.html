@@ -20,9 +20,18 @@ table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:14px}t
 
 .tradeTableWrap{overflow-x:auto;margin-top:6px;padding-bottom:4px}.tradeTable{min-width:1180px}.tradeTable td{vertical-align:top}.tradeId{font-weight:850;letter-spacing:-.02em}.typePill{display:inline-flex;margin-top:6px;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:11px;font-weight:850;background:#0f1116}.typePill.call{color:#66a3ff}.typePill.put{color:#ffd166}.contractCell{max-width:260px;line-height:1.35}.fillLadder{display:grid;gap:5px;min-width:190px}.fillLadder span{display:flex;justify-content:space-between;gap:10px;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:5px 8px;background:#101216;font-size:12px;line-height:1.25}.fillLadder b.buy{color:var(--green)}.fillLadder b.sell{color:var(--red)}.fillLadder em{font-style:normal;color:var(--muted);white-space:nowrap}.chartLink{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(102,163,255,.45);border-radius:999px;background:rgba(102,163,255,.10);color:#cfe1ff;text-decoration:none;font-size:12px;font-weight:850;padding:7px 10px;white-space:nowrap}.chartLink:hover{border-color:#9dc2ff;background:rgba(102,163,255,.18);color:#fff}.muted{color:var(--muted);font-weight:560}.nowrap{white-space:nowrap}
 @media (max-width:620px){.tradeTableWrap{margin-left:-4px;margin-right:-4px}.tradeTable{min-width:940px}.contractCell{max-width:220px}.fillLadder span{font-size:11px}}
-</style></head><body>
+</style><link rel="stylesheet" href="/assets/mobile.css?v=carousel7">
+</head><body>
 <div class="page">
-  <div class="hero"><div><div class="eyebrow">IBKR flat-to-flat round trips</div><div class="title">Trade Performance Lab</div><div class="sub">May 11, 2026 CT • 1 closed SPXW round trip from IBKR fill screenshot • 2-lot entry scaled out at base hit and Call Trigger</div></div><div class="badge">Today only</div> <a class="badge" href="/" style="margin-left:8px;color:#ffd166;text-decoration:none;">Overall</a> <a class="badge" href="/today" style="margin-left:6px;color:#ffd166;text-decoration:none;">Daily</a> <a class="badge" href="/trades" style="margin-left:6px;color:#ffd166;text-decoration:none;">Manage</a></div>
+  <header class="hero">
+    <div><h1 class="title" style="margin:0">Trade Performance Lab</h1></div>
+    <nav class="hero-nav" aria-label="Sections">
+      <a href="/" class="hero-nav-link">Overall</a>
+      <a href="/today" class="hero-nav-link active">Daily</a>
+      <a href="/trades" class="hero-nav-link">Manage</a>
+      <a href="/doctor" class="hero-nav-link">Doctor</a>
+    </nav>
+  </header>
   <div class="filterbar">
     
     <button class="pill action" id="clearSelection">Clear scatter filter</button>
@@ -34,14 +43,14 @@ table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:14px}t
   </div>
   <div class="cards" id="cards"></div>
   <div class="grid" id="grid" data-dashboard-version="may11-0930-closed1-screenshot" data-chart-base="/charts/spx-trade/?date=2026-05-11&interval=1m&v=20260511-spx-dynamic1">
-    <section class="panel" id="curvePanel"><button class="expand">Expand</button><h2>Cumulative PnL curve</h2><div class="hint">Realized PnL across the trading day in 10-minute exit buckets. The X-axis flexes to span only the active trading window for the current filtered set.</div><div id="curve"></div></section>
-    <section class="panel" id="payoffPanel"><button class="expand">Expand</button><h2>Payoff waterfall</h2><div class="hint">Average gross win contribution - average gross loss contribution - average fee per round trip = average net trade.</div><div id="payoff"></div><div class="small">Fee is broker drag averaged across round-trip trades. Win/loss bars are frequency-weighted gross PnL contributions so the waterfall ties exactly to Avg Trade.</div></section>
-    <section class="panel" id="distPanel"><button class="expand">Expand</button><h2>Return distribution</h2><div class="hint">Trade-level return percent for the current filtered set.</div><div id="hist"></div></section>
-    <section class="panel" id="sessionPanel"><button class="expand">Expand</button><h2>Session profit factor</h2><div class="hint">Entry-time buckets in Central Time (RTH 8:30-15:00 CT). PF = sum winning net PnL / abs(sum losing net PnL).</div><div id="sessions"></div></section>
-    <section class="panel" id="hourPanel"><button class="expand">Expand</button><h2>Entry-hour heat strip</h2><div class="hint">Hour of first fill in Central Time. Green = positive net PnL, red = negative net PnL.</div><div class="legend"><span class="sw g"></span>positive net PnL <span class="sw r"></span>negative net PnL</div><div id="hours"></div></section>
-    <section class="panel wide" id="scatterPanel"><button class="expand">Expand</button><h2>Return scatter</h2><div class="xToggle" role="tablist"><button class="xTab active" data-x="duration" role="tab">Duration</button><button class="xTab" data-x="time" role="tab">Time of day</button></div><div class="hint">Drag the amber loss line. Box-select dots to include/exclude or model selected losers as if they stopped at the line. Switch the X axis between hold duration and entry time of day; selection and threshold carry across views.</div><div class="scatter-wrap"><div id="scatter"></div><div class="selectionBox" id="selectionBox"></div></div><div class="selectActions"><button class="pill action" id="includeSelection">Include selected</button><button class="pill action" id="excludeSelection">Exclude selected</button><button class="pill action" id="moveBelowLine">Move below line to line</button><button class="pill action" id="clearScenario">Clear scenario</button><span class="small" id="selectionCount">No dots selected</span></div><div class="scenarioBox" id="scenarioPanel">Drag the amber line to test max-loss rules. Then move selected dots below the line to that level.</div></section>
-    <section class="panel wide" id="streakPanel"><button class="expand">Expand</button><h2>Trade streak strip</h2><div class="hint">Each tick is one flat-to-flat round trip in exit order. Dimmed ticks are currently filtered out.</div><div id="streak"></div></section>
-    <section class="panel wide" id="tradeTablePanel"><h2>Individual round trips</h2><div class="hint">One row per flat-to-flat round trip. A round trip can include multiple buys and sells; the executions column shows the fill ladder.</div><div id="tradeTable"></div></section>
+    <section class="panel" id="curvePanel" data-card-id="curvePanel"><button class="expand">Expand</button><h2>Cumulative PnL curve</h2><div class="hint">Realized PnL across the trading day in 10-minute exit buckets. The X-axis flexes to span only the active trading window for the current filtered set.</div><div id="curve"></div></section>
+    <section class="panel" id="payoffPanel" data-card-id="payoffPanel"><button class="expand">Expand</button><h2>Payoff waterfall</h2><div class="hint">Average gross win contribution - average gross loss contribution - average fee per round trip = average net trade.</div><div id="payoff"></div><div class="small">Fee is broker drag averaged across round-trip trades. Win/loss bars are frequency-weighted gross PnL contributions so the waterfall ties exactly to Avg Trade.</div></section>
+    <section class="panel" id="distPanel" data-card-id="distPanel"><button class="expand">Expand</button><h2>Return distribution</h2><div class="hint">Trade-level return percent for the current filtered set.</div><div id="hist"></div></section>
+    <section class="panel" id="sessionPanel" data-card-id="sessionPanel"><button class="expand">Expand</button><h2>Session profit factor</h2><div class="hint">Entry-time buckets in Central Time (RTH 8:30-15:00 CT). PF = sum winning net PnL / abs(sum losing net PnL).</div><div id="sessions"></div></section>
+    <section class="panel" id="hourPanel" data-card-id="hourPanel"><button class="expand">Expand</button><h2>Entry-hour heat strip</h2><div class="hint">Hour of first fill in Central Time. Green = positive net PnL, red = negative net PnL.</div><div class="legend"><span class="sw g"></span>positive net PnL <span class="sw r"></span>negative net PnL</div><div id="hours"></div></section>
+    <section class="panel wide" id="scatterPanel" data-card-id="scatterPanel"><button class="expand">Expand</button><h2>Return scatter</h2><div class="xToggle" role="tablist"><button class="xTab active" data-x="duration" role="tab">Duration</button><button class="xTab" data-x="time" role="tab">Time of day</button><button class="xTab" id="bubbleToggle" type="button" title="Size dots by P&amp;L $" style="margin-left:8px; border:1px solid var(--line); padding:6px 12px;">Bubbles</button></div><div class="hint">Drag the amber loss line. Box-select dots to include/exclude or model selected losers as if they stopped at the line. Switch the X axis between hold duration and entry time of day; selection and threshold carry across views.</div><div class="scatter-wrap"><div id="scatter"></div><div class="selectionBox" id="selectionBox"></div></div><div class="selectActions"><button class="pill action" id="includeSelection">Include selected</button><button class="pill action" id="excludeSelection">Exclude selected</button><button class="pill action" id="moveBelowLine">Move below line to line</button><button class="pill action" id="clearScenario">Clear scenario</button><span class="small" id="selectionCount">No dots selected</span></div><div class="scenarioBox" id="scenarioPanel">Drag the amber line to test max-loss rules. Then move selected dots below the line to that level.</div></section>
+    <section class="panel wide" id="streakPanel" data-card-id="streakPanel"><button class="expand">Expand</button><h2>Trade streak strip</h2><div class="hint">Each tick is one flat-to-flat round trip in exit order. Dimmed ticks are currently filtered out.</div><div id="streak"></div></section>
+    <section class="panel wide" id="tradeTablePanel" data-card-id="tradeTablePanel"><h2>Individual round trips</h2><div class="hint">One row per flat-to-flat round trip. A round trip can include multiple buys and sells; the executions column shows the fill ladder.</div><div id="tradeTable"></div></section>
   </div>
   <div class="modal" id="modal"><div class="modalCard"><button class="close" id="closeModal">Close</button><div id="modalContent"></div></div></div>
   <div class="foot">Definitions: Profit Factor = sum winning net PnL / abs(sum losing net PnL). Risk/Reward = average winning net PnL / abs(average losing net PnL). Daily PnL % = sum(net_pnl) / sum(entry_gross_cost) * 100. One contract per row is a fill, not a trade; the dashboard counts FIFO-matched round trips.</div>
@@ -95,9 +104,10 @@ function cstTimeLabel(s){const t=localHM(s); return String(t.h).padStart(2,'0')+
 function cstTimeLabelFromMs(ms){const t=displayHMFromMs(ms); return String(t.h).padStart(2,'0')+':'+String(t.m).padStart(2,'0');}
 // IBKR/exchange timestamps are parsed in New York time and displayed/bucketed in Central Time.
 function sessionBucket(s){const m=localMinutes(s); if(m>=510&&m<690)return 'Morning'; if(m>=690&&m<840)return 'Midday'; if(m>=840&&m<885)return 'Power hour'; if(m>=885&&m<=900)return 'End of day'; return 'Outside RTH';}
-const toMs = parseSourceMs;
+const toMs = (s)=>parseSourceMs(s); // route through binding so memoization patch applies
 const fmtDT = s => {const t=displayHMFromMs(toMs(s)); return `${t.month}-${t.day} ${String(t.h).padStart(2,'0')}:${String(t.m).padStart(2,'0')} CT`;};
-function inSession(t){if(sessionMode==='all')return true; const m=localMinutes(t.entry_dt); const rth=m>=510&&m<=900; return sessionMode==='rth'?rth:!rth;}
+function etMinutes(s){const m=String(s||'').match(/T?(\d{2}):(\d{2})/); if(!m) return NaN; return (+m[1])*60 + (+m[2]);}
+function inSession(t){ if(sessionMode==='all') return true; const m=etMinutes(t.entry_dt); if(!Number.isFinite(m)) return false; const rth=m>=540 && m<=975; return sessionMode==='rth' ? rth : !rth; }
 function axisBaseTrades(){return trades.filter(t => inSession(t) && (selectedDays.size===0 || selectedDays.has(t.exit_date)));}
 function currentBaseTrades(){return axisBaseTrades().filter(t => scatterMode==='none' || (scatterMode==='include' ? scatterIds.has(t.id) : !scatterIds.has(t.id)));}
 function adjustedTrade(t){ if(!(scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct)) return t; const net = t.entry_gross_cost * thresholdPct / 100; return {...t, net_pnl: net, gross_pnl: net - t.costs, pnl_pct: thresholdPct, scenario_moved: true}; }
@@ -199,7 +209,7 @@ function renderScatter(baseItems){
   yTicks.forEach(y=>{body+=`<line x1="${left}" y1="${Y(y)}" x2="${right}" y2="${Y(y)}" stroke="#2a2e36"/><text x="${left-8}" y="${Y(y)+4}" fill="#9d9a91" font-size="11" text-anchor="end">${Math.round(y)}%</text>`;});
   const ty=Y(thresholdPct);
   body+=`<line class="thresholdLine" x1="${left}" y1="${ty}" x2="${right}" y2="${ty}" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="8 6" style="cursor:crosshair;pointer-events:none"/><rect class="thresholdHandle" x="${right-118}" y="${ty-18}" width="112" height="34" rx="17" fill="#ffd166" stroke="#08090b" stroke-width="1.5" style="cursor:ns-resize;pointer-events:all"/><text class="thresholdLabel" x="${right-62}" y="${ty+4}" fill="#08090b" font-size="12" font-weight="900" text-anchor="middle" style="pointer-events:none">↕ ${pct(thresholdPct)}</text>`;
-  trades.forEach(t=>{const xRaw=xValueOf(t); if(!Number.isFinite(xRaw)) return; const active=baseItems.includes(t), moved=scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct, yVal=moved?thresholdPct:t.pnl_pct, selected=pendingSelection.has(t.id) || (scatterMode!=='none' && scatterIds.has(t.id)) || moved, col=moved?'#ffd166':(t.net_pnl>=0?'#30d158':'#ff453a'), r=4+Math.min(6,Math.sqrt(Math.max(t.entry_gross_cost,0))/20), edge=xClampedOf(xRaw); const xTip = scatterXMode==='time' ? `entry ${cstTimeLabel(t.entry_dt)}` : `${Math.round(t.duration_min||0)}m`; body+=`<circle class="dot" data-id="${t.id}" data-active="${active?1:0}" cx="${X(xRaw)}" cy="${Y(Math.max(yLo,Math.min(yHi,yVal)))}" r="${selected?r+2:r}" fill="${selected?'#fff':col}" stroke="${edge?'#f4f1ea':(moved?'#ffd166':'none')}" stroke-width="${edge||moved?1.5:0}" opacity="${active?'.86':'.09'}"><title>${t.symbol} ${fmtDT(t.entry_time)} to ${fmtDT(t.exit_time)} | ${money(t.net_pnl,2)} | ${pct(t.pnl_pct)} | ${xTip}${moved?' moved to '+pct(thresholdPct):''}${edge?' | edge-clamped':''}</title></circle>`;});
+  trades.forEach(t=>{const xRaw=xValueOf(t); if(!Number.isFinite(xRaw)) return; const active=baseItems.includes(t), moved=scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct, yVal=moved?thresholdPct:t.pnl_pct, selected=pendingSelection.has(t.id) || (scatterMode!=='none' && scatterIds.has(t.id)) || moved, col=moved?'#ffd166':(t.net_pnl>=0?'#30d158':'#ff453a'), r=(window.tlBubbles?(2+Math.min(28,Math.sqrt(Math.abs(t.net_pnl||0))*1.8)):(4+Math.min(6,Math.sqrt(Math.max(t.entry_gross_cost,0))/20))), edge=xClampedOf(xRaw); const xTip = scatterXMode==='time' ? `entry ${cstTimeLabel(t.entry_dt)}` : `${Math.round(t.duration_min||0)}m`; body+=`<circle class="dot" data-id="${t.id}" data-active="${active?1:0}" cx="${X(xRaw)}" cy="${Y(Math.max(yLo,Math.min(yHi,yVal)))}" r="${selected?r+2:r}" fill="${selected?'#fff':col}" stroke="${edge?'#f4f1ea':(moved?'#ffd166':'none')}" stroke-width="${edge||moved?1.5:0}" opacity="${active?'.86':'.09'}"><title>${t.symbol} ${fmtDT(t.entry_time)} to ${fmtDT(t.exit_time)} | ${money(t.net_pnl,2)} | ${pct(t.pnl_pct)} | ${xTip}${moved?' moved to '+pct(thresholdPct):''}${edge?' | edge-clamped':''}</title></circle>`;});
   $('scatter').innerHTML=svgWrap(w,h,body);
   wireScatterBox({top,bottom,Y,pctFromY,h});
 }
@@ -284,5 +294,28 @@ $('resetAll').onclick=()=>{selectedDays.clear(); scatterMode='none'; scatterIds.
 document.querySelectorAll('.expand').forEach(btn=>btn.onclick=()=>{const panel=btn.closest('.panel'); $('modalContent').innerHTML='<h2>'+panel.querySelector('h2').textContent+'</h2><div class="hint">Expanded read-only view. Use controls on the main chart to filter.</div>'+panel.innerHTML.replace(/<button class="expand">Expand<\/button>/,''); $('modalContent').querySelectorAll('[id]').forEach(el=>el.removeAttribute('id')); $('modalContent').querySelectorAll('button').forEach(el=>el.remove()); $('modal').classList.add('open');});
 $('closeModal').onclick=()=> $('modal').classList.remove('open');
 $('modal').onclick=e=>{if(e.target.id==='modal') $('modal').classList.remove('open');};
+// ----- Perf: memoize tz parses + rAF-debounce render (see / dashboard for rationale) -----
+// Note: today's dashboard uses localHM/localMinutes (not cstHM/cstMinutes).
+(function(){
+  const _ms=new Map(), _hm=new Map(), _min=new Map(), _sess=new Map(), _lbl=new Map();
+  const _oPM=parseSourceMs, _oHM=localHM, _oMin=localMinutes, _oSess=sessionBucket, _oLbl=cstTimeLabel;
+  parseSourceMs=function(s){ if(typeof s!=='string') return _oPM(s); let v=_ms.get(s); if(v===undefined){v=_oPM(s); _ms.set(s,v);} return v; };
+  localHM=function(s){ if(typeof s!=='string') return _oHM(s); let v=_hm.get(s); if(v===undefined){v=_oHM(s); _hm.set(s,v);} return v; };
+  localMinutes=function(s){ if(typeof s!=='string') return _oMin(s); let v=_min.get(s); if(v===undefined){v=_oMin(s); _min.set(s,v);} return v; };
+  sessionBucket=function(s){ if(typeof s!=='string') return _oSess(s); let v=_sess.get(s); if(v===undefined){v=_oSess(s); _sess.set(s,v);} return v; };
+  cstTimeLabel=function(s){ if(typeof s!=='string') return _oLbl(s); let v=_lbl.get(s); if(v===undefined){v=_oLbl(s); _lbl.set(s,v);} return v; };
+  const _oR=render; let _scheduled=false;
+  render=function(){ if(_scheduled) return; _scheduled=true; requestAnimationFrame(()=>{_scheduled=false; _oR();}); };
+})();
 render();
-</script></body></html>
+
+// Bubble mode (added by cards refactor).
+(function(){var b=document.getElementById('bubbleToggle'); if(!b) return;
+  function sync(){b.classList.toggle('active', !!window.tlBubbles);}
+  b.addEventListener('click', function(){window.tlBubbles = !window.tlBubbles; sync(); if(typeof render==='function') render();});
+  sync();
+})();
+
+</script>
+<script src="/assets/cards.js?v=carousel7" defer></script>
+</body></html>

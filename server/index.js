@@ -3,22 +3,49 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import multer from 'multer';
+import helmet from 'helmet';
 import { db } from './db.js';
-import { enrichTrades, computeTradePnl } from './pnl.js';
+import { enrichTrades } from './pnl.js';
 import { importCsv } from './csvImport.js';
 import { renderOverall, renderToday, renderCsv } from './template.js';
 import { buildChartPayload } from './chartData.js';
 import { settlementPrice } from './settlement.js';
+import { computeDoctor } from './doctor.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 4173;
 
+app.set('trust proxy', 1);
+
+// ---------- security headers ----------
+// CSP allows inline scripts because the legacy dashboard HTML embeds inline
+// blocks (the trade-data JSON injection + chart-rendering code). 'unsafe-inline'
+// is the price of preserving that contract; tightening to nonces is tech debt.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"],
+      baseUri: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'same-site' },
+}));
+
 app.use(express.json({ limit: '5mb' }));
 
-// ---------- legacy dashboards (DB-backed) ----------
-// These must come BEFORE express.static so we can inject fresh trade data into
-// the templated HTML instead of serving the file as-is.
+// ---------- pages ----------
+// TradeLab is a single-user app. The DB lives on disk wherever TRADELAB_DATA_DIR
+// (or TRADELAB_DB) points — typically the user's own machine. No accounts, no
+// sessions, no login.
 function html(res) {
   res.set('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.type('html');
@@ -27,6 +54,7 @@ app.get('/',                  (req, res) => { html(res); res.send(renderOverall(
 app.get(/^\/csv\/?$/,         (req, res) => { html(res); res.send(renderCsv()); });
 app.get(/^\/today\/?$/,       (req, res) => { html(res); res.send(renderToday()); });
 app.get(['/manage', '/trades'], (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'manage.html')));
+app.get('/doctor',            (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'doctor.html')));
 
 // Dynamic SPX chart data — replaces the legacy per-day static JSON file.
 app.get(/^\/data\/interactive-charts\/SPX_(\d{4}-\d{2}-\d{2})_(\d+m)_trade_arrows\.json$/, async (req, res) => {
@@ -44,11 +72,15 @@ app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['htm
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+
 // ---------- helpers ----------
 function fetchExecutionsByTrade(tradeIds) {
   if (!tradeIds.length) return new Map();
   const placeholders = tradeIds.map(() => '?').join(',');
-  const rows = db.prepare(`SELECT * FROM executions WHERE trade_id IN (${placeholders}) ORDER BY dt`).all(...tradeIds);
+  const rows = db.prepare(
+    `SELECT * FROM executions WHERE trade_id IN (${placeholders}) ORDER BY dt`
+  ).all(...tradeIds);
   const m = new Map();
   for (const r of rows) {
     if (!m.has(r.trade_id)) m.set(r.trade_id, []);
@@ -64,7 +96,9 @@ function allEnrichedTrades(where = '', params = []) {
 }
 
 function nextManualId() {
-  const row = db.prepare("SELECT id FROM trades WHERE id LIKE 'man-%' ORDER BY id DESC LIMIT 1").get();
+  const row = db.prepare(
+    "SELECT id FROM trades WHERE id LIKE 'man-%' ORDER BY id DESC LIMIT 1"
+  ).get();
   const n = row ? parseInt(row.id.slice(4), 10) : 0;
   return `man-${String(n+1).padStart(4,'0')}`;
 }
@@ -79,8 +113,82 @@ app.get('/api/trades', (req, res) => {
   if (root) { where.push('root = ?'); params.push(root); }
   const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
   let trades = allEnrichedTrades(whereStr, params);
-  if (limit) trades = trades.slice(0, parseInt(limit,10));
+  if (limit) trades = trades.slice(0, Math.max(1, Math.min(parseInt(limit, 10) || 0, 10000)));
   res.json({ trades, count: trades.length });
+});
+
+// Per-fill executions in the broker "tape" shape the importer accepts.
+app.get('/api/executions/export.csv', (req, res) => {
+  let { from, to, days } = req.query;
+  if (days && !from) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - parseInt(days, 10));
+    from = d.toISOString().slice(0, 10);
+  }
+  const where = [];
+  const params = [];
+  if (from) { where.push('substr(e.dt,1,10) >= ?'); params.push(from); }
+  if (to)   { where.push('substr(e.dt,1,10) <= ?'); params.push(to); }
+  const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const rows = db.prepare(`
+    SELECT t.symbol AS symbol, e.dt AS dt, e.side AS side, e.qty AS qty,
+           e.price AS price, e.commission AS commission
+    FROM executions e JOIN trades t ON t.id = e.trade_id
+    ${whereStr}
+    ORDER BY e.dt, e.side
+  `).all(...params);
+
+  const esc = (v) => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = ['Symbol,Side,Fill Price,Time,Qty,Net Amount,Commission'];
+  for (const r of rows) {
+    const signed = (r.side === 'SELL' ? 1 : -1) * r.qty * r.price * 100;
+    lines.push([
+      esc(r.symbol), r.side, r.price, r.dt, r.qty,
+      Math.round(signed * 100) / 100, r.commission
+    ].join(','));
+  }
+  const tag = days ? `last${days}d` : (from || 'all') + (to ? `_to_${to}` : '');
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="tradelab_tape_${tag}.csv"`);
+  res.set('Cache-Control', 'no-store');
+  res.send(lines.join('\n') + '\n');
+});
+
+app.get('/api/trades/export.csv', (req, res) => {
+  const where = [];
+  const params = [];
+  let { from, to, days } = req.query;
+  if (days && !from) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - parseInt(days, 10));
+    from = d.toISOString().slice(0, 10);
+  }
+  if (from) { where.push('substr(entry_dt,1,10) >= ?'); params.push(from); }
+  if (to)   { where.push('substr(entry_dt,1,10) <= ?'); params.push(to); }
+  const whereStr = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const trades = allEnrichedTrades(whereStr, params);
+
+  const cols = ['id','symbol','root','expiry','strike','right','direction','quantity',
+                'entry_dt','exit_dt','entry_price','exit_price',
+                'gross_pnl','net_pnl','pnl_pct','commission','duration_min','synthetic_exit'];
+  const esc = (v) => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [cols.join(',')];
+  for (const t of trades) lines.push(cols.map(c => esc(t[c])).join(','));
+  const csv = lines.join('\n') + '\n';
+
+  const tag = days ? `last${days}d` : (from || 'all') + (to ? `_to_${to}` : '');
+  res.set('Content-Type', 'text/csv; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="tradelab_${tag}.csv"`);
+  res.set('Cache-Control', 'no-store');
+  res.send(csv);
 });
 
 app.get('/api/trades/:id', (req, res) => {
@@ -105,7 +213,7 @@ app.post('/api/trades', (req, res) => {
   `).run({
     id,
     symbol: b.symbol,
-    root: b.root || (b.symbol.match(/^[A-Z]+/) || [null])[0],
+    root: b.root || (String(b.symbol).match(/^[A-Z]+/) || [null])[0],
     expiry: b.expiry || null,
     strike: b.strike ?? null,
     right: b.right || null,
@@ -155,15 +263,42 @@ app.delete('/api/trades', (req, res) => {
 });
 
 // ---------- CSV import ----------
+// preview=1 (or dryRun=1) returns the proposed trades without committing.
 app.post('/api/trades/import', upload.single('file'), async (req, res) => {
   try {
     const text = req.file ? req.file.buffer.toString('utf8') : (req.body?.csv || '');
     if (!text.trim()) return res.status(400).json({ error: 'csv body required (file upload or csv field)' });
-    const result = await importCsv(text);
+    const format = (req.body?.format || req.query?.format || 'auto').toString().toLowerCase();
+    const dryRun = req.query.preview === '1' || req.query.dryRun === '1' || req.body?.preview === '1' || req.body?.preview === true;
+
+    let importId = null;
+    if (!dryRun) {
+      const fn = req.file?.originalname || null;
+      const ir = db.prepare(
+        `INSERT INTO imports (filename, mode) VALUES (?, ?)`
+      ).run(fn, format);
+      importId = ir.lastInsertRowid;
+    }
+
+    const result = await importCsv(text, { format, dryRun, importId });
+
+    if (!dryRun && importId) {
+      db.prepare(`UPDATE imports SET mode = ?, inserted = ?, updated = ?, skipped = ? WHERE id = ?`)
+        .run(result.mode, result.inserted || 0, result.updated || 0, result.skipped || 0, importId);
+      result.import_id = importId;
+    }
     res.json(result);
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
+});
+
+app.get('/api/imports', (req, res) => {
+  const rows = db.prepare(
+    `SELECT id, filename, mode, inserted, updated, skipped, created_at
+       FROM imports ORDER BY id DESC LIMIT 50`
+  ).all();
+  res.json({ imports: rows });
 });
 
 // ---------- metrics ----------
@@ -184,29 +319,22 @@ function summarize(trades) {
   const total_winnings = trades.filter(t => t.net_pnl > 0).reduce((s,t)=>s+t.net_pnl,0);
   const total_losses = trades.filter(t => t.net_pnl < 0).reduce((s,t)=>s+t.net_pnl,0);
   return {
-    count: trades.length,
-    closed,
-    open: trades.length - closed,
+    count: trades.length, closed, open: trades.length - closed,
     wins, losses, scratches,
     win_rate: closed ? wins / closed : 0,
-    net_pnl: r2(net),
-    gross_pnl: r2(gross),
-    commission: r2(commission),
+    net_pnl: r2(net), gross_pnl: r2(gross), commission: r2(commission),
     avg_pnl: closed ? r2(net / closed) : 0,
     avg_win: wins ? r2(total_winnings / wins) : 0,
     avg_loss: losses ? r2(total_losses / losses) : 0,
     profit_factor: total_losses !== 0 ? r2(total_winnings / Math.abs(total_losses)) : null,
-    biggest_win: r2(biggest_win),
-    biggest_loss: r2(biggest_loss),
+    biggest_win: r2(biggest_win), biggest_loss: r2(biggest_loss),
     expectancy: closed ? r2(net / closed) : 0,
-    longest_win_streak: longest_win,
-    longest_loss_streak: longest_loss,
+    longest_win_streak: longest_win, longest_loss_streak: longest_loss,
     avg_duration_min: durations ? r2(total_duration / durations) : 0
   };
 }
 
 function r2(n) { return Math.round(n * 100) / 100; }
-
 function dayKey(t) { return (t.entry_dt || '').slice(0,10); }
 function hourKey(t) { return (t.entry_dt || '').slice(11,13); }
 
@@ -232,7 +360,6 @@ app.get('/api/metrics/overall', (req, res) => {
   const summary = summarize(trades);
   const daily = dailyAgg(trades);
 
-  // Drawdown over daily equity curve
   let peak = 0, maxDD = 0, curDD = 0;
   for (const d of daily) {
     peak = Math.max(peak, d.cum_pnl);
@@ -241,29 +368,24 @@ app.get('/api/metrics/overall', (req, res) => {
     curDD = dd;
   }
 
-  // Day-of-week buckets
   const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(n => ({ name: n, count: 0, net: 0, wins: 0 }));
   for (const t of trades) {
     if (!t.entry_dt) continue;
     const d = new Date(t.entry_dt + 'Z').getUTCDay();
-    dow[d].count++;
-    dow[d].net += t.net_pnl || 0;
+    dow[d].count++; dow[d].net += t.net_pnl || 0;
     if (t.net_pnl > 0) dow[d].wins++;
   }
   for (const d of dow) { d.net = r2(d.net); d.win_rate = d.count ? d.wins / d.count : 0; }
 
-  // Hourly histogram (entry hour)
   const hours = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0, net: 0, wins: 0 }));
   for (const t of trades) {
     const h = parseInt(hourKey(t), 10);
     if (Number.isNaN(h)) continue;
-    hours[h].count++;
-    hours[h].net += t.net_pnl || 0;
+    hours[h].count++; hours[h].net += t.net_pnl || 0;
     if (t.net_pnl > 0) hours[h].wins++;
   }
   for (const h of hours) { h.net = r2(h.net); h.win_rate = h.count ? h.wins / h.count : 0; }
 
-  // Per-symbol root buckets
   const roots = new Map();
   for (const t of trades) {
     const k = t.root || '—';
@@ -275,10 +397,7 @@ app.get('/api/metrics/overall', (req, res) => {
 
   res.json({
     summary: { ...summary, max_drawdown: r2(maxDD), current_drawdown: r2(curDD) },
-    daily,
-    dow,
-    hours,
-    roots: rootStats,
+    daily, dow, hours, roots: rootStats,
     date_range: daily.length ? { from: daily[0].date, to: daily[daily.length-1].date, days: daily.length } : null
   });
 });
@@ -288,7 +407,6 @@ app.get('/api/metrics/daily/:date', (req, res) => {
   const trades = allEnrichedTrades('WHERE substr(entry_dt,1,10) = ?', [date]);
   const summary = summarize(trades);
 
-  // Intraday cumulative curve, sorted by entry time
   const sorted = [...trades].sort((a,b)=>(a.entry_dt||'').localeCompare(b.entry_dt||''));
   let cum = 0;
   const curve = sorted.map(t => {
@@ -296,24 +414,16 @@ app.get('/api/metrics/daily/:date', (req, res) => {
     return { entry_dt: t.entry_dt, exit_dt: t.exit_dt, id: t.id, net_pnl: t.net_pnl, cum_pnl: r2(cum) };
   });
 
-  // Adjacent day navigation
   const prev = db.prepare(`SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades WHERE substr(entry_dt,1,10) < ? ORDER BY d DESC LIMIT 1`).get(date);
   const next = db.prepare(`SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades WHERE substr(entry_dt,1,10) > ? ORDER BY d ASC LIMIT 1`).get(date);
 
   res.json({
-    date,
-    summary,
-    trades: sorted,
-    curve,
-    prev: prev?.d || null,
-    next: next?.d || null
+    date, summary, trades: sorted, curve,
+    prev: prev?.d || null, next: next?.d || null
   });
 });
 
-// Audit / close-expired:
-//   GET  /api/audit/expired           → list open trades that should be auto-closed
-//   POST /api/audit/close-expired     → close them at SPX-cash intrinsic value (or $0)
-//   Optional ?dryRun=1 on POST to see the proposed mutations without committing.
+// ---------- audit / expired ----------
 app.get('/api/audit/expired', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const open = db.prepare(`
@@ -349,11 +459,7 @@ app.post('/api/audit/close-expired', async (req, res) => {
       }
     } catch (e) { source = `fallback $0 (${e.message})`; }
     plan.push({
-      id: t.id,
-      symbol: t.symbol,
-      expiry: t.expiry,
-      strike: t.strike,
-      right: t.right,
+      id: t.id, symbol: t.symbol, expiry: t.expiry, strike: t.strike, right: t.right,
       entry_price: t.entry_price,
       proposed_exit_dt: `${t.expiry}T16:00:00`,
       proposed_exit_price: exit_price,
@@ -370,15 +476,24 @@ app.post('/api/audit/close-expired', async (req, res) => {
   res.json({ dryRun: false, count: plan.length, plan });
 });
 
+// ---------- trade doctor ----------
+app.get('/api/doctor', (req, res) => {
+  const rValue = parseFloat(req.query.r);
+  if (!Number.isFinite(rValue) || rValue < 1 || rValue > 100_000) {
+    return res.status(400).json({ error: 'r query param (typical $ risk per trade) must be between 1 and 100000' });
+  }
+  const validDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const from = validDate(req.query.from) ? req.query.from : null;
+  const to   = validDate(req.query.to)   ? req.query.to   : null;
+  const trades = allEnrichedTrades();
+  const result = computeDoctor(trades, { rValue, from, to });
+  res.json(result);
+});
+
 app.get('/api/dates', (req, res) => {
   const rows = db.prepare(`SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades ORDER BY d DESC`).all();
   res.json({ dates: rows.map(r => r.d) });
 });
-
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, trades: db.prepare('SELECT COUNT(*) AS n FROM trades').get().n });
-});
-
 
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`tradelab listening on http://127.0.0.1:${PORT}`);

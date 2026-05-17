@@ -13,6 +13,10 @@ export const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// TradeLab is a single-user app: one DB per user, on their own machine.
+// The schema reflects that — no users/sessions/invites tables. Older databases
+// (from when TradeLab had auth) may still have those tables and a user_id
+// column on trades/executions; that's harmless leftover data and gets ignored.
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS trades (
   id            TEXT PRIMARY KEY,
@@ -49,14 +53,34 @@ CREATE TABLE IF NOT EXISTS executions (
 );
 CREATE INDEX IF NOT EXISTS idx_executions_trade ON executions(trade_id);
 
+CREATE TABLE IF NOT EXISTS imports (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  filename      TEXT,
+  mode          TEXT,
+  inserted      INTEGER NOT NULL DEFAULT 0,
+  updated       INTEGER NOT NULL DEFAULT 0,
+  skipped       INTEGER NOT NULL DEFAULT 0,
+  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 CREATE TRIGGER IF NOT EXISTS trades_updated_at
 AFTER UPDATE ON trades
 BEGIN
   UPDATE trades SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = NEW.id;
 END;
 `;
-
 db.exec(SCHEMA);
+
+// Additive ALTERs (idempotent). Older v1 databases didn't have the
+// `import_id` column on trades; new installs get it from the base schema.
+function hasColumn(table, col) {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all();
+  return rows.some(r => r.name === col);
+}
+function addColumnIfMissing(table, col, def) {
+  if (!hasColumn(table, col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+}
+addColumnIfMissing('trades', 'import_id', 'INTEGER');
 
 export function tradeCount() {
   return db.prepare('SELECT COUNT(*) AS n FROM trades').get().n;

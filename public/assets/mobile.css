@@ -1,0 +1,571 @@
+/* Mobile + chart-height polish applied across legacy dashboards.
+   Loaded after the dashboard's inline <style>, so these rules win on tie. */
+
+/* Bubble toggle hover */
+#bubbleToggle.active { background:#ffd166 !important; color:#08090b !important; }
+#bubbleToggle:not(.active):hover { color:#fff; }
+
+/* -----------------------------------------------------------------
+   Hero nav row — Overall / Daily / Manage
+   Consistent sizing, single line at every breakpoint.
+   ----------------------------------------------------------------- */
+.hero-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.hero-nav-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border: 1px solid var(--line, #2a2e36);
+  border-radius: 999px;
+  background: #111317;
+  color: #ffd166;
+  font-weight: 750;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 40px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.hero-nav-link:hover {
+  background: #1b1f27;
+  border-color: #5b6473;
+  color: #fff;
+}
+.hero-nav-link.active {
+  background: rgba(255, 209, 102, 0.16);
+  border-color: rgba(255, 209, 102, 0.55);
+  color: #ffd166;
+}
+@media (max-width: 620px) {
+  .hero-nav { justify-content: stretch; gap: 6px; }
+  .hero-nav-link {
+    flex: 1 1 0;
+    padding: 9px 8px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    min-height: 38px;
+  }
+}
+
+/* -----------------------------------------------------------------
+   Date-range popover trigger + popover
+   ----------------------------------------------------------------- */
+.dr-trigger {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.dr-trigger-icon { font-size: 14px; line-height: 1; }
+.dr-trigger-label { font-weight: 750; letter-spacing: 0.01em; }
+.dr-trigger-chev { font-size: 10px; opacity: 0.65; margin-left: 2px; }
+
+.dr-popover[hidden] { display: none !important; }
+.dr-popover {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dr-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 5, 7, 0.74);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.dr-panel {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: #111317;
+  border: 1px solid #3a404b;
+  border-radius: 22px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dr-section-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9d9a91;
+}
+.dr-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.dr-shortcut {
+  appearance: none;
+  border: 1px solid #2a2e36;
+  background: #15171b;
+  color: #f4f1ea;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 12px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, border-color 0.12s ease;
+  min-height: 44px;
+}
+.dr-shortcut:hover { background: #1b1f27; border-color: #5b6473; }
+.dr-shortcut.active {
+  background: rgba(255, 209, 102, 0.18);
+  border-color: rgba(255, 209, 102, 0.60);
+  color: #ffd166;
+}
+.dr-custom { display: flex; flex-direction: column; gap: 8px; }
+.dr-custom-inputs { display: flex; gap: 10px; }
+.dr-custom-inputs label {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9d9a91;
+}
+.dr-custom-inputs input[type="date"] {
+  background: #0b0c0f;
+  color: #f4f1ea;
+  border: 1px solid #2a2e36;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  min-height: 44px;
+  color-scheme: dark;
+}
+.dr-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  justify-content: flex-end;
+}
+.dr-actions button {
+  appearance: none;
+  border: 1px solid #2a2e36;
+  background: #15171b;
+  color: #f4f1ea;
+  font: inherit;
+  font-weight: 750;
+  font-size: 13px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 96px;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.dr-actions .dr-cancel:hover { background: #1b1f27; border-color: #5b6473; }
+.dr-actions .dr-apply {
+  background: #ffd166;
+  color: #08090b;
+  border-color: #ffd166;
+}
+.dr-actions .dr-apply:hover { background: #ffd97a; }
+
+@media (max-width: 480px) {
+  .dr-shortcuts { grid-template-columns: 1fr; }
+  .dr-panel { padding: 16px; gap: 12px; border-radius: 18px; }
+}
+
+/* The dashboard toolbar needs to sit BELOW the existing sticky filterbar
+   when both are sticky. Without this they overlap on scroll. */
+.tl-card-toolbar { top: 64px; }
+
+/* On mobile, the legacy filterbar can wrap to many rows; pin our toolbar lower
+   and shrink padding so the visible chart area is maximized. */
+@media (max-width: 720px) {
+  .tl-card-toolbar { top: 0; position: relative; }
+  .filterbar { position: relative !important; top: auto !important; }
+  /* Let chart SVGs use their natural aspect ratio (width = container, height
+     auto from viewBox). Previously we forced 70vh which letterboxed the chart
+     and created empty space above/below. The chart renderers themselves now
+     pick a taller viewBox on mobile so the chart IS visibly bigger without
+     fighting CSS height. */
+  /* Single-column on phones */
+  .grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+  /* Bigger touch targets on KPI tiles */
+  .cards .card.metric { padding: 16px !important; min-height: 76px; }
+  /* The bottom corner of charts has axis labels — give them air */
+  .panel.tl-card { padding: 18px 14px 22px !important; }
+  /* Trade table rows */
+  .tradeTable td { padding: 10px 8px !important; }
+
+  /* Calendar day-cell typography: smaller, more breathing room between lines */
+  .panel.tl-card .day {
+    padding: 8px 8px !important;
+    min-height: 64px !important;
+    gap: 3px;
+  }
+  .panel.tl-card .day b { font-size: 11px !important; line-height: 1.15; }
+  .panel.tl-card .day span { font-size: 13px !important; line-height: 1.25; margin-top: 2px; }
+  .panel.tl-card .day em { font-size: 9.5px !important; line-height: 1.25; margin-top: 2px; }
+}
+
+/* Larger touch target for the badge nav on small screens */
+@media (max-width: 480px) {
+  a.badge { min-height: 38px; display: inline-flex; align-items: center; }
+}
+
+/* -----------------------------------------------------------------
+   Futures-base banner — shown when any trade has is_futures=true.
+   ----------------------------------------------------------------- */
+.futures-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 14px;
+  margin: 0 0 18px;
+  border: 1px solid rgba(255, 209, 102, 0.40);
+  border-radius: 14px;
+  background: rgba(255, 209, 102, 0.07);
+  color: #d8d2c5;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.futures-banner[hidden] { display: none; }
+.futures-banner .fb-warn { color: #ffd166; font-weight: 800; letter-spacing: 0.04em; }
+.futures-banner .fb-info { flex: 1 1 auto; min-width: 0; }
+.futures-banner .fb-edit,
+.futures-banner .fb-save,
+.futures-banner .fb-cancel {
+  appearance: none;
+  font: inherit;
+  font-weight: 750;
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 32px;
+}
+.futures-banner .fb-edit {
+  border: 1px solid rgba(255, 209, 102, 0.55);
+  background: transparent;
+  color: #ffd166;
+}
+.futures-banner .fb-edit:hover { background: rgba(255, 209, 102, 0.12); }
+.futures-banner .fb-save {
+  border: 1px solid #ffd166;
+  background: #ffd166;
+  color: #08090b;
+}
+.futures-banner .fb-cancel {
+  border: 1px solid #2a2e36;
+  background: transparent;
+  color: #d8d2c5;
+}
+.futures-banner .fb-title {
+  width: 100%;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd166;
+  margin-bottom: 2px;
+}
+.futures-banner .fb-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  width: 100%;
+}
+.futures-banner .fb-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #13151a;
+  border: 1px solid #2a2e36;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.futures-banner .fb-root {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 800;
+  color: #ffd166;
+}
+.futures-banner .fb-in {
+  width: 80px;
+  background: #0b0c0f;
+  color: #f4f1ea;
+  border: 1px solid #2a2e36;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+}
+.futures-banner .fb-actions { display: flex; gap: 8px; }
+
+/* Help the share-PNG capture not crop chart edges in 2x scale */
+.panel.tl-card { overflow: visible; }
+
+/* The legacy "Expand" button (top-right of each panel) overlaps the cards.js
+   chrome (hide/show + share checkbox) which lives in the same corner. Mobile
+   already hid it via the inline @media block; this also hides it on desktop.
+   The modal it opened was a read-only larger view that the carousel + the
+   height +/− controls in arrange mode already cover. */
+.panel.tl-card .expand { display: none !important; }
+
+/* When the user manually sets a card height (via the height +/- buttons),
+   the chart SVG must scale to fill — the dashboards' default `.svg { height:auto }`
+   aspect-scales by width and leaves the rest as whitespace. */
+.panel.tl-card[data-tl-resized] { overflow: hidden; }
+.panel.tl-card[data-tl-resized] > .tl-card-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.panel.tl-card[data-tl-resized] > .tl-card-body > .hint,
+.panel.tl-card[data-tl-resized] > .tl-card-body > h2,
+.panel.tl-card[data-tl-resized] > .tl-card-body > .xToggle,
+.panel.tl-card[data-tl-resized] > .tl-card-body > .legend,
+.panel.tl-card[data-tl-resized] > .tl-card-body > .selectActions,
+.panel.tl-card[data-tl-resized] > .tl-card-body > .scenarioBox,
+.panel.tl-card[data-tl-resized] > .tl-card-body > .small { flex: 0 0 auto; }
+.panel.tl-card[data-tl-resized] > .tl-card-body > div[id] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.panel.tl-card[data-tl-resized] .scatter-wrap { height: 100%; }
+.panel.tl-card[data-tl-resized] .svg {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* -----------------------------------------------------------------
+   Mobile swipe carousel
+   ----------------------------------------------------------------- */
+
+/* When cards.js enables carousel mode on phones, the .grid becomes a
+   single-row horizontal scroller with snap points so the user swipes
+   through cards one at a time. Each card is the viewport width minus
+   page padding. */
+@media (max-width: 720px) {
+  .grid.tl-carousel {
+    display: flex !important;
+    grid-template-columns: none !important;
+    flex-wrap: nowrap;
+    /* Critical: align-items defaults to stretch on a flex row, which makes
+       every card grow as tall as the tallest one (the calendar). flex-start
+       lets each card take its natural height. */
+    align-items: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px !important;
+    padding-bottom: 130px; /* leave room under the fixed pager (~110px tall + 10px safe-area) */
+    /* Bleed past the .page container's horizontal padding so each card
+       can fill the full viewport width without a gutter. */
+    margin-left: -18px;
+    margin-right: -18px;
+    padding-left: 18px;
+    padding-right: 18px;
+    scroll-padding-left: 18px;
+  }
+  .grid.tl-carousel::-webkit-scrollbar { display: none; }
+  .grid.tl-carousel > .panel {
+    flex: 0 0 calc(100vw - 36px);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    /* Card sizes to its content — no forced height. Previously we forced
+       60vh min and capped at 100vh-120px with internal overflow, which
+       created a nested scroll container that fought the carousel's
+       horizontal scroll on phones (the "iframe-like" buggy scrolling). */
+    display: flex;
+    flex-direction: column;
+  }
+  .grid.tl-carousel > .panel.wide {
+    flex: 0 0 calc(100vw - 36px);
+  }
+  .grid.tl-carousel > .panel > .tl-card-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .grid.tl-carousel > .panel > .tl-card-body > div[id] {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Pager — pinned to the viewport bottom. Big two-row pill: top = label +
+     arrows, bottom = draggable scrubber. We use position:fixed because the
+     dashboards set `.page { overflow: hidden }` on mobile, which breaks
+     position:sticky relative to .page. */
+  .tl-pager {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    border-radius: 20px;
+    background: rgba(12, 13, 16, 0.94);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+    color: #d8d2c5;
+    pointer-events: auto;
+  }
+  .tl-pager-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tl-pager-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 750;
+    color: #f4f1ea;
+    letter-spacing: 0.01em;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    padding: 0 4px;
+  }
+  .tl-pager-counter {
+    font-size: 11px;
+    color: #9d9a91;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-right: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-pager-arrow {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: #f4f1ea;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    transition: background 0.12s ease, transform 0.08s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tl-pager-arrow:active { background: rgba(255, 209, 102, 0.22); transform: scale(0.94); }
+  .tl-pager-arrow[disabled] { opacity: 0.32; pointer-events: none; }
+
+  /* Scrubber: draggable track with a thumb showing the active card. The
+     entire track is hit-testable; tap-and-drag scrubs through cards. */
+  .tl-pager-track {
+    position: relative;
+    height: 28px;
+    margin: 0 2px;
+    padding: 11px 0;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tl-pager-track:active { cursor: grabbing; }
+  .tl-pager-track::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    height: 6px;
+    margin-top: -3px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 999px;
+  }
+  .tl-pager-segments {
+    position: absolute;
+    inset: 11px 0;
+    display: flex;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .tl-pager-segment {
+    flex: 1 1 0;
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+  }
+  .tl-pager-segment.active {
+    background: #ffd166;
+    box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.28);
+  }
+  .tl-pager-thumb {
+    position: absolute;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    margin-top: -14px;
+    margin-left: -14px;
+    border-radius: 50%;
+    background: #ffd166;
+    border: 3px solid #0b0c0f;
+    box-shadow: 0 4px 14px rgba(255, 209, 102, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.10);
+    transition: left 0.18s cubic-bezier(.22,.61,.36,1), transform 0.12s ease;
+    pointer-events: none;
+  }
+  .tl-pager-track.dragging .tl-pager-thumb {
+    transition: none;
+    transform: scale(1.15);
+  }
+
+  /* Cards do NOT scroll internally — the page itself scrolls vertically if
+     a card exceeds the viewport. Nested scroll fights the carousel's
+     horizontal swipe and produces buggy "iframe-like" jitter on phones. */
+
+  /* CRITICAL: the legacy inline <style> sets `.svg { touch-action: none }`
+     so the scatter chart can run a custom box-select with pointer events.
+     That kills horizontal swipes on phones — without overriding here, the
+     carousel cannot scroll. We re-enable both axes so the native scroller
+     handles swipes; the cost is the desktop scatter box-select doesn't work
+     on touch, which was always finicky anyway. */
+  .grid.tl-carousel,
+  .grid.tl-carousel > .panel,
+  .grid.tl-carousel .svg,
+  .grid.tl-carousel .scatter-wrap,
+  .grid.tl-carousel svg {
+    touch-action: pan-x pan-y !important;
+  }
+
+  /* Hidden cards in carousel mode should not occupy space (display:none from
+     base .tl-card-hidden continues to apply). */
+
+  /* Mobile expand button is hidden by base CSS; keep it that way in carousel. */
+  .grid.tl-carousel .expand { display: none !important; }
+
+  /* Mobile bubble toggle / xTab inside a card needs to wrap if too wide. */
+  .grid.tl-carousel .xToggle { flex-wrap: wrap; }
+}

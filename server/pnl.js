@@ -8,10 +8,18 @@ export function computeTradePnl(trade, executions = []) {
   if (executions && executions.length > 0) {
     let cash = 0;
     let commission = 0;
+    let boughtQty = 0, soldQty = 0;
     for (const e of executions) {
       const sign = e.side === 'SELL' ? 1 : -1;
       cash += sign * e.qty * e.price * MULTIPLIER;
       commission += e.commission || 0;
+      if (e.side === 'SELL') soldQty += e.qty; else boughtQty += e.qty;
+    }
+    // Position is still open if BUY and SELL legs don't reconcile. Returning
+    // a non-null PnL here was producing things like "9 contracts × 7510.75 ×
+    // 100 = -$6.76M" for unmatched MES buys and showing up downstream.
+    if (Math.abs(boughtQty - soldQty) > 1e-9) {
+      return { gross_pnl: null, net_pnl: null, commission: round2(commission) };
     }
     const grossPnl = cash;
     const netPnl = cash + commission; // commission is already negative

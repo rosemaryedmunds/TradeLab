@@ -16,8 +16,55 @@
     <a href="/">Overall</a>
     <a href="/today">Daily</a>
     <a href="/trades" class="active">Trades</a>
+    <a href="/doctor">Doctor</a>
   </div>
 </nav>
+
+<style>
+  /* Wizard */
+  .wiz-steps { display:flex; gap:10px; align-items:center; margin: 4px 0 18px; }
+  .wiz-step { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); }
+  .wiz-step .n { width:22px; height:22px; border-radius:50%; border:1px solid var(--line);
+    display:grid; place-items:center; font-size:11px; color:var(--muted); background:#0a0b0e; }
+  .wiz-step.active { color:var(--amber); }
+  .wiz-step.active .n { border-color:var(--amber); color:var(--amber); background:var(--amber-soft); }
+  .wiz-step.done .n { background:var(--amber); color:#1a1306; border-color:var(--amber); }
+  .wiz-step.done { color:var(--text); }
+  .wiz-sep { flex:1; height:1px; background:var(--line-soft); }
+  .wiz-pane { min-height: 220px; }
+  .drop { border:1.5px dashed var(--line); border-radius:14px; padding:30px; text-align:center;
+    background:#0a0b0e; transition:border-color .15s ease, background .15s ease; cursor:pointer; }
+  .drop.drag { border-color:var(--amber); background:var(--amber-soft); }
+  .drop .icon { font-family:var(--serif); font-size:32px; color:var(--amber); }
+  .drop .h { font-family:var(--serif); font-size:18px; margin:8px 0 4px; }
+  .drop .s { color:var(--muted); font-size:12px; }
+  .drop input[type=file] { display:none; }
+  .map-row { display:grid; grid-template-columns: 1fr 14px 1fr; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line-soft); }
+  .map-row:last-child { border-bottom:none; }
+  .map-col { font-family:var(--mono); font-size:12px; color:var(--text); }
+  .map-col.head { color:var(--muted); text-transform:uppercase; font-size:10px; letter-spacing:0.16em; }
+  .map-arrow { color:var(--muted); text-align:center; }
+  .map-row select { background:#0a0b0e; color:var(--text); border:1px solid var(--line); border-radius:7px;
+    padding:6px 8px; font-family:var(--mono); font-size:12px; }
+  .preview-tbl { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11px; }
+  .preview-tbl th { text-align:left; color:var(--muted); font-weight:400; letter-spacing:0.12em;
+    text-transform:uppercase; font-size:9px; padding:8px 6px; border-bottom:1px solid var(--line); }
+  .preview-tbl td { padding:6px; border-bottom:1px solid var(--line-soft); white-space:nowrap; }
+  .preview-totals { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin: 12px 0; }
+  .stat { background:#0a0b0e; border:1px solid var(--line-soft); border-radius:10px; padding:10px 12px; }
+  .stat .l { font-family:var(--mono); font-size:9px; letter-spacing:0.16em; color:var(--muted); text-transform:uppercase; }
+  .stat .v { font-family:var(--serif); font-size:24px; }
+  .stat .v.pos { color:#7eddb5; } .stat .v.neg { color:#f08274; }
+  .wiz-foot { display:flex; gap:10px; justify-content:space-between; margin-top:18px; }
+  .err-pane { margin-top:10px; padding:10px 12px; background:#1a0e0e; border:1px solid #4a1c1c;
+    border-radius:8px; font-family:var(--mono); font-size:11px; color:#ffb4ad;
+    white-space:pre-wrap; max-height:160px; overflow:auto; }
+  .ok-pane { background:#0f1d12; border:1px solid #2c5236; color:#a5e1b4; padding:14px 16px;
+    border-radius:12px; font-size:13px; margin-bottom:8px; }
+  .fmt-badge { display:inline-block; padding:3px 9px; border-radius:999px; background:var(--amber-soft);
+    color:var(--amber); font-family:var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; }
+</style>
 
 <main class="page">
   <div class="hero">
@@ -340,7 +387,7 @@ function downloadSharePng(svg, id) {
 $('#add').addEventListener('click', () => openTradeModal());
 
 // CSV upload
-$('#csv').addEventListener('click', () => openCsvModal());
+$('#csv').addEventListener('click', () => openCsvWizard());
 
 function toast(msg, kind = '') {
   const el = document.createElement('div');
@@ -415,59 +462,338 @@ function openTradeModal(t = null) {
   });
 }
 
-function openCsvModal() {
-  const back = modal(`
-    <h3>Upload CSV</h3>
-    <p class="modal-help" style="margin-bottom:14px;">
-      Two formats are auto-detected:<br>
-      <b>Flat</b> — one row per trade with columns: <code>symbol, entry_dt, exit_dt, quantity, entry_price, exit_price, commission</code> (id, root, expiry, strike, right optional).<br>
-      <b>Executions</b> — IBKR-style ladder rows with <code>side, qty, price, dt</code> grouped by <code>round_trip_id</code>.<br>
-      Datetimes can be ISO (<code>2026-05-11T09:33:21</code>) or space-separated.
-    </p>
-    <input class="text" id="file" type="file" accept=".csv,text/csv" style="padding: 6px;"/>
-    <div class="modal-help" style="margin-top:8px;">— or paste CSV below —</div>
-    <textarea class="text" id="paste" rows="6" placeholder="symbol,entry_dt,exit_dt,quantity,entry_price,exit_price,commission&#10;SPY 06JAN26 690 C,2026-01-06T11:57:58,2026-01-06T12:17:52,3,0.28,0.48,-4.11" style="margin-top:8px;"></textarea>
-    <div class="modal-actions">
-      <button class="btn ghost" data-close>cancel</button>
-      <button class="btn primary" id="upload">import</button>
-    </div>
-  `);
-  back.querySelector('[data-close]').addEventListener('click', () => back.remove());
-  back.querySelector('#upload').addEventListener('click', async () => {
-    const f = back.querySelector('#file').files[0];
-    const paste = back.querySelector('#paste').value;
-    let r;
-    if (f) {
-      const fd = new FormData();
-      fd.append('file', f);
-      r = await fetch('/api/trades/import', { method: 'POST', body: fd });
-    } else if (paste.trim()) {
-      r = await fetch('/api/trades/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ csv: paste }) });
-    } else {
-      toast('No CSV provided', 'error'); return;
+// ---------- 4-step CSV import wizard ----------
+//   1) upload    pick a file or paste CSV text
+//   2) map       confirm detected format; for "flat" mode, remap column names
+//   3) preview   server dry-run returns first 20 parsed trades + totals
+//   4) confirm   commit the import; show outcome
+function openCsvWizard() {
+  const state = {
+    step: 1,
+    csv: '',
+    filename: null,
+    format: 'auto',
+    detectedFormat: null,
+    headers: [],
+    mapping: {}, // for flat mode only: { trade_field: csv_header }
+    preview: null,
+    result: null,
+  };
+  const FLAT_FIELDS = [
+    ['symbol', 'Symbol'],
+    ['entry_dt', 'Entry datetime'],
+    ['entry_price', 'Entry price'],
+    ['exit_dt', 'Exit datetime'],
+    ['exit_price', 'Exit price'],
+    ['quantity', 'Quantity'],
+    ['commission', 'Commission'],
+    ['notes', 'Notes'],
+  ];
+  const FLAT_ALIASES = {
+    symbol: ['symbol', 'contract', 'ticker'],
+    entry_dt: ['entry_dt', 'entry', 'entry_datetime', 'entry_time'],
+    exit_dt: ['exit_dt', 'exit', 'exit_time'],
+    entry_price: ['entry_price', 'entry'],
+    exit_price: ['exit_price', 'exit'],
+    quantity: ['quantity', 'qty'],
+    commission: ['commission'],
+    notes: ['notes'],
+  };
+  const REQUIRED_FLAT = ['symbol','entry_dt','entry_price','quantity'];
+
+  function normalizeHeader(h){ return String(h||'').toLowerCase().trim().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''); }
+  function detectFormatClient(headers) {
+    const s = new Set(headers);
+    if (s.has('filled_time') && (s.has('total_qty') || s.has('filled')) && s.has('status')) return 'webull';
+    if ((s.has('fill_price') || s.has('price')) && s.has('time') && s.has('side')) return 'tape';
+    if ((s.has('side') || s.has('action')) && (s.has('qty') || s.has('quantity')) && (s.has('price') || s.has('fill_price'))) return 'executions';
+    return 'flat';
+  }
+  function parseHeaders(text) {
+    const firstLine = text.split(/\r?\n/, 1)[0] || '';
+    const delim = (firstLine.match(/\t/g)||[]).length > (firstLine.match(/,/g)||[]).length ? '\t' : ',';
+    // Naive split: respects double-quoted commas.
+    const out = []; let cur = '', inq = false;
+    for (let i=0;i<firstLine.length;i++){
+      const ch = firstLine[i];
+      if (ch === '"') { inq = !inq; continue; }
+      if (ch === delim && !inq) { out.push(cur); cur = ''; continue; }
+      cur += ch;
     }
-    const j = await r.json();
-    if (!r.ok) { toast(j.error || 'import failed', 'error'); return; }
-    const ok = (j.inserted + j.updated) > 0;
-    if (ok) {
-      toast(`Imported · ${j.inserted} added, ${j.updated} updated, ${j.skipped} skipped (${j.mode})`, 'success');
-      back.remove();
-      await load();
-    } else {
-      // Surface the parser's reasons when nothing landed.
-      const errBlock = back.querySelector('#errblock');
-      const msg = `0 trades imported · mode=${j.mode || '?'} · skipped=${j.skipped}\n\n` +
-                  (j.errors?.length ? 'Errors:\n' + j.errors.join('\n') : 'No detail returned.');
-      if (errBlock) errBlock.textContent = msg;
-      else {
-        const div = document.createElement('pre');
-        div.id = 'errblock';
-        div.style.cssText = 'margin-top:12px; padding:10px; background:var(--ink-2); border:1px solid var(--coral); border-radius:8px; font-size:11px; color:var(--coral); white-space:pre-wrap; max-height:240px; overflow:auto;';
-        div.textContent = msg;
-        back.querySelector('.modal').insertBefore(div, back.querySelector('.modal-actions'));
+    out.push(cur);
+    return out.map(normalizeHeader);
+  }
+
+  const back = modal(`<div id="wiz" style="min-width:560px;"></div>`);
+  const root = back.querySelector('#wiz');
+  back.querySelector('.modal').style.maxWidth = '720px';
+
+  function stepsHtml() {
+    const items = [
+      [1,'Upload'], [2,'Map'], [3,'Preview'], [4,'Confirm']
+    ];
+    return `<div class="wiz-steps">${items.map(([n,name],i)=>{
+      const cls = state.step===n ? 'active' : (state.step>n ? 'done' : '');
+      return `<span class="wiz-step ${cls}"><span class="n">${state.step>n?'✓':n}</span>${name}</span>${i<items.length-1?'<span class="wiz-sep"></span>':''}`;
+    }).join('')}</div>`;
+  }
+  function close() { back.remove(); }
+  function render() {
+    if (state.step === 1) renderUpload();
+    else if (state.step === 2) renderMap();
+    else if (state.step === 3) renderPreview();
+    else renderConfirm();
+  }
+
+  function renderUpload() {
+    root.innerHTML = `
+      <h3 style="margin-top:0;">Import CSV</h3>
+      ${stepsHtml()}
+      <div class="wiz-pane">
+        <label class="drop" id="drop">
+          <div class="icon">⇡</div>
+          <div class="h">Drop a CSV here, or click to choose</div>
+          <div class="s">Up to 20 MB · IBKR, TradingView, WeBull, or custom flat exports</div>
+          <input type="file" id="file" accept=".csv,text/csv"/>
+        </label>
+        <details style="margin-top:14px;">
+          <summary class="modal-help" style="cursor:pointer;">— or paste CSV text instead —</summary>
+          <textarea class="text" id="paste" rows="6" style="margin-top:8px; width:100%; box-sizing:border-box;" placeholder="symbol,entry_dt,exit_dt,quantity,entry_price,exit_price,commission"></textarea>
+        </details>
+      </div>
+      <div class="wiz-foot">
+        <button class="btn ghost" data-close>cancel</button>
+        <button class="btn primary" id="next" disabled>continue →</button>
+      </div>`;
+    const drop = root.querySelector('#drop');
+    const fileInput = root.querySelector('#file');
+    const paste = root.querySelector('#paste');
+    const next = root.querySelector('#next');
+
+    function setCsv(text, filename) {
+      state.csv = text;
+      state.filename = filename || null;
+      state.headers = parseHeaders(text);
+      state.detectedFormat = detectFormatClient(state.headers);
+      state.format = state.detectedFormat;
+      // Build a default mapping for flat: prefer exact alias matches.
+      state.mapping = {};
+      for (const [field] of FLAT_FIELDS) {
+        const aliases = FLAT_ALIASES[field];
+        const hit = aliases.find(a => state.headers.includes(a));
+        state.mapping[field] = hit || '';
       }
+      drop.querySelector('.h').textContent = filename || 'CSV ready';
+      drop.querySelector('.s').textContent = `${state.headers.length} columns · detected · ${state.detectedFormat}`;
+      next.disabled = false;
     }
-  });
+
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files[0]; if (!f) return;
+      if (f.size > 20 * 1024 * 1024) { toast('File too large (20MB max)', 'error'); return; }
+      const reader = new FileReader();
+      reader.onload = () => setCsv(String(reader.result || ''), f.name);
+      reader.readAsText(f);
+    });
+    drop.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') fileInput.click(); });
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault(); drop.classList.remove('drag');
+      const f = e.dataTransfer.files[0]; if (!f) return;
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event('change'));
+    });
+    paste.addEventListener('input', () => {
+      if (paste.value.trim()) setCsv(paste.value, null);
+      else next.disabled = true;
+    });
+    root.querySelector('[data-close]').addEventListener('click', close);
+    next.addEventListener('click', () => { state.step = 2; render(); });
+  }
+
+  function renderMap() {
+    const isFlat = state.detectedFormat === 'flat';
+    const optList = ['<option value="">— skip —</option>']
+      .concat(state.headers.map(h => `<option value="${xesc(h)}">${xesc(h)}</option>`))
+      .join('');
+    const mapRows = isFlat ? FLAT_FIELDS.map(([field, label]) => {
+      const req = REQUIRED_FLAT.includes(field);
+      const sel = state.mapping[field] || '';
+      return `
+        <div class="map-row">
+          <div class="map-col">${label}${req?' <span style="color:#f08274">*</span>':''}</div>
+          <div class="map-arrow">→</div>
+          <select data-field="${field}">${optList.replace(`value="${xesc(sel)}"`, `value="${xesc(sel)}" selected`)}</select>
+        </div>`;
+    }).join('') : `
+      <div class="modal-help" style="padding:12px;">
+        TradeLab will use its built-in <b>${xesc(state.detectedFormat)}</b> parser for this file.
+        Column mapping isn't needed — the parser detects the right fields automatically.
+      </div>`;
+
+    root.innerHTML = `
+      <h3 style="margin-top:0;">Map columns</h3>
+      ${stepsHtml()}
+      <div class="wiz-pane">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div class="modal-help">Detected format <span class="fmt-badge">${xesc(state.detectedFormat)}</span></div>
+          <div class="modal-help">${state.headers.length} columns · ${state.filename || 'pasted text'}</div>
+        </div>
+        ${isFlat ? `<div class="map-row"><div class="map-col head">Trade field</div><div></div><div class="map-col head">CSV column</div></div>${mapRows}` : mapRows}
+      </div>
+      <div class="wiz-foot">
+        <button class="btn ghost" id="back">← back</button>
+        <button class="btn primary" id="next">preview →</button>
+      </div>`;
+
+    root.querySelectorAll('select[data-field]').forEach(sel => {
+      sel.addEventListener('change', () => { state.mapping[sel.dataset.field] = sel.value; });
+    });
+    root.querySelector('#back').addEventListener('click', () => { state.step = 1; render(); });
+    root.querySelector('#next').addEventListener('click', async () => {
+      if (isFlat) {
+        const missing = REQUIRED_FLAT.filter(f => !state.mapping[f]);
+        if (missing.length) { toast('Missing required: ' + missing.join(', '), 'error'); return; }
+      }
+      await runPreview();
+    });
+  }
+
+  // Rewrite a flat CSV's header row to canonical field names per the user's mapping.
+  // Other formats are sent as-is — their importers already accept many header variants.
+  function applyFlatMapping(csv) {
+    if (state.detectedFormat !== 'flat') return csv;
+    const lines = csv.split(/\r?\n/);
+    if (!lines.length) return csv;
+    const firstLine = lines[0];
+    const delim = (firstLine.match(/\t/g)||[]).length > (firstLine.match(/,/g)||[]).length ? '\t' : ',';
+    // Pure-position rewrite: find headers' positions, build new header line.
+    const headers = state.headers; // normalized order
+    const invert = {}; // csv_header -> trade_field
+    for (const [field, h] of Object.entries(state.mapping)) if (h) invert[h] = field;
+    const newHeaders = headers.map(h => invert[h] || h);
+    lines[0] = newHeaders.join(delim);
+    return lines.join('\n');
+  }
+
+  async function runPreview() {
+    root.innerHTML = `<h3 style="margin-top:0;">Preview</h3>${stepsHtml()}<div class="wiz-pane modal-help" style="padding:30px; text-align:center;">Parsing your CSV…</div>`;
+    try {
+      const csv = applyFlatMapping(state.csv);
+      const r = await fetch('/api/trades/import?preview=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv, format: state.format }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'preview failed');
+      state.preview = j;
+      state.step = 3; render();
+    } catch (e) {
+      root.innerHTML += `<div class="err-pane">${xesc(e.message)}</div>
+        <div class="wiz-foot"><button class="btn ghost" id="back">← back</button></div>`;
+      root.querySelector('#back').addEventListener('click', () => { state.step = 2; render(); });
+    }
+  }
+
+  function renderPreview() {
+    const p = state.preview || {};
+    const rows = p.preview || [];
+    const totalNet = rows.reduce((s, t) => {
+      const ep = t.entry_price ?? 0, xp = t.exit_price;
+      if (xp == null) return s;
+      return s + (xp - ep) * (t.quantity || 0) * 100 + (t.commission || 0);
+    }, 0);
+    const errsHtml = (p.errors && p.errors.length)
+      ? `<div class="err-pane">${xesc(p.errors.join('\n'))}</div>` : '';
+    const rowsHtml = rows.length ? rows.slice(0,20).map(t => `
+      <tr>
+        <td>${xesc((t.entry_dt||'').replace('T',' '))}</td>
+        <td>${xesc(t.symbol||'')}</td>
+        <td>${t.quantity ?? ''}</td>
+        <td>${t.entry_price != null ? Number(t.entry_price).toFixed(2) : '—'}</td>
+        <td>${t.exit_price != null ? Number(t.exit_price).toFixed(2) : '<span style="color:var(--muted)">open</span>'}</td>
+      </tr>`).join('') : `<tr><td colspan="5" class="modal-help" style="padding:18px; text-align:center;">No trades parsed — check format/mapping.</td></tr>`;
+
+    root.innerHTML = `
+      <h3 style="margin-top:0;">Preview</h3>
+      ${stepsHtml()}
+      <div class="wiz-pane">
+        <div class="preview-totals">
+          <div class="stat"><div class="l">Mode</div><div class="v">${xesc(p.mode||'?')}</div></div>
+          <div class="stat"><div class="l">New trades</div><div class="v">${p.inserted ?? 0}</div></div>
+          <div class="stat"><div class="l">Updates</div><div class="v">${p.updated ?? 0}</div></div>
+          <div class="stat"><div class="l">Net (closed)</div><div class="v ${totalNet >= 0 ? 'pos':'neg'}">${money(totalNet)}</div></div>
+        </div>
+        <div style="max-height:340px; overflow:auto; border:1px solid var(--line-soft); border-radius:10px;">
+          <table class="preview-tbl">
+            <thead><tr><th>Entry</th><th>Symbol</th><th>Qty</th><th>Entry $</th><th>Exit $</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        ${errsHtml}
+      </div>
+      <div class="wiz-foot">
+        <button class="btn ghost" id="back">← back</button>
+        <button class="btn primary" id="commit" ${(p.inserted+p.updated) === 0 ? 'disabled':''}>import ${p.inserted+p.updated} trades →</button>
+      </div>`;
+    root.querySelector('#back').addEventListener('click', () => { state.step = 2; render(); });
+    root.querySelector('#commit').addEventListener('click', runCommit);
+  }
+
+  async function runCommit() {
+    root.innerHTML = `<h3 style="margin-top:0;">Importing…</h3>${stepsHtml()}<div class="wiz-pane modal-help" style="padding:30px; text-align:center;">Writing trades to your journal…</div>`;
+    try {
+      const csv = applyFlatMapping(state.csv);
+      const fd = new FormData();
+      fd.append('csv', csv);
+      fd.append('format', state.format);
+      // Use JSON for the commit too, so the body is small and consistent.
+      const r = await fetch('/api/trades/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv, format: state.format }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'import failed');
+      state.result = j;
+      state.step = 4; render();
+    } catch (e) {
+      root.innerHTML += `<div class="err-pane">${xesc(e.message)}</div>
+        <div class="wiz-foot"><button class="btn ghost" id="back">← back</button></div>`;
+      root.querySelector('#back').addEventListener('click', () => { state.step = 3; render(); });
+    }
+  }
+
+  function renderConfirm() {
+    const j = state.result || {};
+    const total = (j.inserted || 0) + (j.updated || 0);
+    const errsHtml = (j.errors && j.errors.length)
+      ? `<details style="margin-top:10px;"><summary class="modal-help" style="cursor:pointer;">${j.errors.length} parser notes</summary><div class="err-pane">${xesc(j.errors.join('\n'))}</div></details>` : '';
+    root.innerHTML = `
+      <h3 style="margin-top:0;">Imported</h3>
+      ${stepsHtml()}
+      <div class="wiz-pane">
+        <div class="ok-pane">
+          <div style="font-family:var(--serif); font-size:24px; margin-bottom:4px;">${total} trades imported</div>
+          <div style="font-size:12px; opacity:.9;">${j.inserted || 0} new · ${j.updated || 0} updated · ${j.skipped || 0} skipped · mode <b>${xesc(j.mode||'?')}</b></div>
+        </div>
+        ${errsHtml}
+      </div>
+      <div class="wiz-foot">
+        <button class="btn ghost" id="another">import another</button>
+        <button class="btn primary" id="done">done</button>
+      </div>`;
+    root.querySelector('#another').addEventListener('click', () => {
+      state.step = 1; state.csv=''; state.filename=null; state.preview=null; state.result=null;
+      render();
+    });
+    root.querySelector('#done').addEventListener('click', async () => { close(); await load(); });
+  }
+
+  back.querySelector('.modal').addEventListener('click', (e) => e.stopPropagation());
+  render();
 }
 
 load();

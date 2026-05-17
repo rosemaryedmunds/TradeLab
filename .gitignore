@@ -15,6 +15,11 @@ data/candle-cache/
 # Broker CSV exports contain account numbers and trade history — never commit.
 *.TRANSACTIONS.*.csv
 *trade-history*.csv
+Webull_Orders_Records*.csv
+Webull_*.csv
+
+# Local working backups created during refactors — useful locally, not for git.
+backups/
 
 # Logs
 *.log

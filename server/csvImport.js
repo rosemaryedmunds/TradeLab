@@ -49,8 +49,17 @@ function detectRoot(symbol) {
 const MONTHS = { Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12 };
 
 function parseOptionDescription(s) {
-  // "SPX (SPXW) May12 '26 7340 Put"  or  "AAPL Jun 21 '24 200 Call"
-  const m = String(s).match(/([A-Z][a-z]{2})\s*(\d{1,2})\s+'?(\d{2,4})\s+(\d+(?:\.\d+)?)\s+(Call|Put|C|P)\b/i);
+  const str = String(s || '');
+  // Glued IBKR-style: "SPY 28APR26 716 C" or "SPXW 06JAN26 6940 C"
+  let m = str.match(/\b(\d{1,2})([A-Z]{3})(\d{2})\s+(\d+(?:\.\d+)?)\s+(Call|Put|C|P)\b/i);
+  if (m) {
+    const [, day, mon, yr, strike, rt] = m;
+    const monNum = MONTHS[mon[0].toUpperCase() + mon.slice(1, 3).toLowerCase()];
+    const expiry = monNum ? `${2000 + parseInt(yr,10)}-${String(monNum).padStart(2,'0')}-${String(day).padStart(2,'0')}` : null;
+    return { root: detectRoot(s), expiry, strike: parseFloat(strike), right: /^c/i.test(rt) ? 'C' : 'P' };
+  }
+  // Spaced TradingView/IBKR description: "SPX (SPXW) May12 '26 7340 Put" or "AAPL Jun 21 '24 200 Call"
+  m = str.match(/([A-Z][a-z]{2})\s*(\d{1,2})\s+'?(\d{2,4})\s+(\d+(?:\.\d+)?)\s+(Call|Put|C|P)\b/i);
   if (!m) return { root: detectRoot(s), expiry: null, strike: null, right: null };
   const [, mon, day, yr, strike, rt] = m;
   const yrNum = yr.length === 2 ? 2000 + parseInt(yr, 10) : parseInt(yr, 10);
@@ -67,6 +76,8 @@ function parseOptionDescription(s) {
 function detectFormat(rows) {
   if (!rows.length) return 'flat';
   const keys = new Set(Object.keys(rows[0]));
+  // WeBull options export: Filled Time + Total Qty + Status (+ Avg Price)
+  if (keys.has('filled_time') && (keys.has('total_qty') || keys.has('filled')) && keys.has('status')) return 'webull';
   // Trade tape: has Fill Price + Time + Side (the user's IBKR-style export)
   if ((keys.has('fill_price') || keys.has('price')) && keys.has('time') && keys.has('side')) return 'tape';
   // IBKR execution ladder with round_trip_id
@@ -76,7 +87,56 @@ function detectFormat(rows) {
   return 'flat';
 }
 
-export async function importCsv(text) {
+// OCC-style symbol → space-separated description so the rest of the pipeline
+// (parseOptionDescription, dedup by symbol string, UI display) works unchanged.
+// "SPY260515C00741000" → "SPY 15MAY26 741 C"
+function occToDescription(occ) {
+  const m = String(occ || '').trim().match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/);
+  if (!m) return null;
+  const [, root, yy, mm, dd, right, strike8] = m;
+  const monAbbr = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][parseInt(mm,10) - 1];
+  if (!monAbbr) return null;
+  const strikeNum = parseInt(strike8, 10) / 1000;
+  const strikeStr = Number.isInteger(strikeNum) ? String(strikeNum) : String(strikeNum);
+  return `${root} ${dd}${monAbbr}${yy} ${strikeStr} ${right}`;
+}
+
+// Convert WeBull rows into the per-fill tape shape, then reuse importTape().
+function normalizeWebull(rows) {
+  const out = [];
+  const errors = [];
+  for (const r of rows) {
+    const status = String(r.status || '').toLowerCase();
+    if (status !== 'filled') continue;                       // skip Cancelled / Working
+    const filledQty = parseFloat(r.filled ?? r.total_qty);
+    if (!filledQty || filledQty <= 0) continue;
+    const rawSym = r.symbol || r.name;
+    const sym = occToDescription(rawSym) || rawSym;
+    const side = String(r.side || '').toUpperCase().startsWith('S') ? 'Sell' : 'Buy';
+    const priceStr = String(r.avg_price || r.price || '').replace(/^@/, '').trim();
+    const price = parseFloat(priceStr);
+    if (!sym || Number.isNaN(price)) {
+      errors.push(`bad webull row: ${JSON.stringify(r).slice(0,200)}`);
+      continue;
+    }
+    // Times look like "05/15/2026 09:54:31 EDT" — strip the TZ suffix so toISO's
+    // US-style regex matches. Broker reports are already wall-clock ET; keep them so.
+    const timeStr = String(r.filled_time || r.placed_time || '').replace(/\s+[A-Z]{2,4}$/, '').trim();
+    out.push({
+      symbol: sym,
+      side,
+      fill_price: price,
+      time: timeStr,
+      qty: filledQty,
+      commission: 0          // WeBull export doesn't include commissions
+    });
+  }
+  return { execs: out, errors };
+}
+
+export async function importCsv(text, opts = {}) {
+  const dryRun = !!opts.dryRun;
+  const importId = opts.importId ?? null;
   const delimiter = detectDelimiter(text);
   const records = parse(text, {
     columns: (h) => h.map(normalizeHeader),
@@ -87,23 +147,32 @@ export async function importCsv(text) {
   });
   if (!records.length) return { inserted: 0, updated: 0, skipped: 0, errors: ['empty csv'], mode: 'flat' };
 
-  const mode = detectFormat(records);
-  if (mode === 'tape')       return await importTape(records);
-  if (mode === 'executions') return importExecutions(records);
-  return importFlat(records);
+  let mode = opts.format && opts.format !== 'auto' ? opts.format : detectFormat(records);
+  const ctx = { dryRun, importId };
+  if (mode === 'webull') {
+    const { execs, errors } = normalizeWebull(records);
+    const result = await importTape(execs, ctx);
+    result.mode = 'webull';
+    result.errors = [...errors, ...(result.errors || [])].slice(0, 20);
+    return result;
+  }
+  if (mode === 'tape')       return await importTape(records, ctx);
+  if (mode === 'executions') return importExecutions(records, ctx);
+  return importFlat(records, ctx);
 }
 
 const insertTradeSQL = `
   INSERT INTO trades (id, symbol, root, expiry, strike, right, direction, quantity,
-    entry_dt, exit_dt, entry_price, exit_price, commission, notes, synthetic_exit)
+    entry_dt, exit_dt, entry_price, exit_price, commission, notes, synthetic_exit, import_id)
   VALUES (@id, @symbol, @root, @expiry, @strike, @right, @direction, @quantity,
-    @entry_dt, @exit_dt, @entry_price, @exit_price, @commission, @notes, @synthetic_exit)
+    @entry_dt, @exit_dt, @entry_price, @exit_price, @commission, @notes, @synthetic_exit, @import_id)
   ON CONFLICT(id) DO UPDATE SET
     symbol=excluded.symbol, root=excluded.root, expiry=excluded.expiry, strike=excluded.strike,
     right=excluded.right, direction=excluded.direction, quantity=excluded.quantity,
     entry_dt=excluded.entry_dt, exit_dt=excluded.exit_dt,
     entry_price=excluded.entry_price, exit_price=excluded.exit_price,
-    commission=excluded.commission, synthetic_exit=excluded.synthetic_exit
+    commission=excluded.commission, synthetic_exit=excluded.synthetic_exit,
+    import_id=COALESCE(excluded.import_id, trades.import_id)
 `;
 const insertExecSQL = `
   INSERT INTO executions (trade_id, dt, side, qty, price, commission)
@@ -112,12 +181,15 @@ const insertExecSQL = `
 const clearExecSQL = `DELETE FROM executions WHERE trade_id = ?`;
 
 function nextManualId() {
-  const row = db.prepare("SELECT id FROM trades WHERE id LIKE 'man-%' ORDER BY id DESC LIMIT 1").get();
+  const row = db.prepare(
+    "SELECT id FROM trades WHERE id LIKE 'man-%' ORDER BY id DESC LIMIT 1"
+  ).get();
   const n = row ? parseInt(row.id.slice(4), 10) : 0;
   return `man-${String(n+1).padStart(4,'0')}`;
 }
 
-// Find an existing trade that should be treated as "the same" as an incoming one.
+// Find an existing trade that should be treated as "the same" as an incoming
+// one.
 // Open positions: match on (symbol, entry_dt) only (one open per buy-time).
 // Closed trades: must match on entry+exit datetimes AND exit price (handles
 // FIFO splits where one buy is closed by multiple sells).
@@ -133,12 +205,14 @@ function findExisting(symbol, entry_dt, exit_dt, exit_price) {
 }
 
 // ---------------- FLAT ----------------
-function importFlat(rows) {
+function importFlat(rows, ctx) {
+  const { dryRun, importId } = ctx;
   const insertTrade = db.prepare(insertTradeSQL);
   let inserted = 0, updated = 0, skipped = 0;
   const errors = [];
+  const previewTrades = [];
 
-  const tx = db.transaction(() => {
+  const work = () => {
     for (const r of rows) {
       try {
         const symbol = r.symbol || r.contract || r.ticker;
@@ -151,15 +225,15 @@ function importFlat(rows) {
           continue;
         }
         let id = r.id || r.trade_id || r.round_trip_id;
+        const exit_dt = toISO(r.exit_dt || r.exit || r.exit_time);
+        const exit_price = r.exit_price != null && r.exit_price !== '' ? parseFloat(r.exit_price) : null;
         if (!id) {
-          const exit_dt = toISO(r.exit_dt || r.exit || r.exit_time);
-          const exit_price = r.exit_price != null && r.exit_price !== '' ? parseFloat(r.exit_price) : null;
           const match = findExisting(symbol, entry_dt, exit_dt, exit_price);
           id = match ? match.id : nextManualId();
         }
         const parsed = parseOptionDescription(symbol);
         const exists = db.prepare('SELECT 1 FROM trades WHERE id = ?').get(id);
-        insertTrade.run({
+        const row = {
           id,
           symbol,
           root: r.root || parsed.root,
@@ -169,26 +243,35 @@ function importFlat(rows) {
           direction: r.direction || 'long',
           quantity: Math.abs(quantity),
           entry_dt,
-          exit_dt: toISO(r.exit_dt || r.exit || r.exit_time),
+          exit_dt,
           entry_price,
-          exit_price: r.exit_price != null && r.exit_price !== '' ? parseFloat(r.exit_price) : null,
+          exit_price,
           commission: r.commission ? parseFloat(r.commission) : 0,
           notes: r.notes || null,
-          synthetic_exit: 0
-        });
+          synthetic_exit: 0,
+          import_id: importId
+        };
+        if (dryRun) {
+          previewTrades.push(row);
+          if (exists) updated++; else inserted++;
+          continue;
+        }
+        insertTrade.run(row);
         if (exists) updated++; else inserted++;
       } catch (e) {
         skipped++;
         errors.push(`${e.message}: ${JSON.stringify(r).slice(0,200)}`);
       }
     }
-  });
-  tx();
-  return { inserted, updated, skipped, errors: errors.slice(0, 20), mode: 'flat' };
+  };
+  if (dryRun) work();
+  else db.transaction(work)();
+  return { inserted, updated, skipped, errors: errors.slice(0, 20), mode: 'flat', preview: dryRun ? previewTrades.slice(0, 20) : undefined };
 }
 
 // ---------------- EXECUTIONS WITH round_trip_id ----------------
-function importExecutions(rows) {
+function importExecutions(rows, ctx) {
+  const { dryRun, importId } = ctx;
   const groups = new Map();
   for (const r of rows) {
     const key = r.round_trip_id || r.trade_id || r.id;
@@ -198,7 +281,7 @@ function importExecutions(rows) {
   }
   if (groups.size === 0) {
     // No explicit ids — fall through to tape parser, which FIFO-matches buys to sells
-    return importTape(rows);
+    return importTape(rows, ctx);
   }
 
   const insertTrade = db.prepare(insertTradeSQL);
@@ -206,8 +289,9 @@ function importExecutions(rows) {
   const insertExec = db.prepare(insertExecSQL);
   let inserted = 0, updated = 0;
   const errors = [];
+  const previewTrades = [];
 
-  const tx = db.transaction(() => {
+  const work = () => {
     for (const [key, execs] of groups) {
       execs.sort((a, b) => String(a.dt||a.datetime||a.time).localeCompare(String(b.dt||b.datetime||b.time)));
       const first = execs[0];
@@ -238,10 +322,11 @@ function importExecutions(rows) {
         ? db.prepare('SELECT id FROM trades WHERE symbol = ? AND entry_dt = ?').get(symbol, entry_dt)
         : null;
       if (matchByContent) id = matchByContent.id;
-      const exists = db.prepare('SELECT 1 FROM trades WHERE id = ?').get(id);
+      const exists = !!db.prepare('SELECT 1 FROM trades WHERE id = ?').get(id);
 
-      insertTrade.run({
-        id, symbol,
+      const tradeRow = {
+        id,
+        symbol,
         root: first.root || parsed.root,
         expiry: first.expiry || parsed.expiry,
         strike: first.strike ? parseFloat(first.strike) : parsed.strike,
@@ -252,8 +337,15 @@ function importExecutions(rows) {
         entry_price, exit_price,
         commission: totalCommission,
         notes: null,
-        synthetic_exit: 0
-      });
+        synthetic_exit: 0,
+        import_id: importId
+      };
+      if (dryRun) {
+        previewTrades.push(tradeRow);
+        if (exists) updated++; else inserted++;
+        continue;
+      }
+      insertTrade.run(tradeRow);
       clearExec.run(id);
       for (const e of execs) {
         const dt = toISO(e.dt || e.datetime || e.time);
@@ -266,13 +358,15 @@ function importExecutions(rows) {
       }
       if (exists) updated++; else inserted++;
     }
-  });
-  tx();
-  return { inserted, updated, skipped: 0, errors: errors.slice(0, 20), mode: 'executions' };
+  };
+  if (dryRun) work();
+  else db.transaction(work)();
+  return { inserted, updated, skipped: 0, errors: errors.slice(0, 20), mode: 'executions', preview: dryRun ? previewTrades.slice(0, 20) : undefined };
 }
 
 // ---------------- TAPE: per-fill rows, FIFO match per symbol ----------------
-async function importTape(rows) {
+async function importTape(rows, ctx) {
+  const { dryRun, importId } = ctx;
   // Normalize each row into an execution record.
   const execs = [];
   const errors = [];
@@ -433,14 +527,15 @@ async function importTape(rows) {
     existingByKey.set(k, rows.map((r) => r.id));
   }
 
-  const tx = db.transaction(() => {
+  const previewTrades = [];
+  const work = () => {
     for (const t of trades) {
       const parsed = parseOptionDescription(t.symbol);
       const queue = existingByKey.get(dedupKey(t));
-      const reuseId = queue.length ? queue.shift() : null;
+      const reuseId = queue && queue.length ? queue.shift() : null;
       const id = reuseId ?? nextManualId();
       const exists = !!reuseId;
-      insertTrade.run({
+      const tradeRow = {
         id,
         symbol: t.symbol,
         root: parsed.root,
@@ -455,15 +550,23 @@ async function importTape(rows) {
         exit_price: t.exit_price,
         commission: t.commission,
         notes: null,
-        synthetic_exit: t.synthetic_exit ? 1 : 0
-      });
+        synthetic_exit: t.synthetic_exit ? 1 : 0,
+        import_id: importId
+      };
+      if (dryRun) {
+        previewTrades.push(tradeRow);
+        if (exists) updated++; else inserted++;
+        continue;
+      }
+      insertTrade.run(tradeRow);
       clearExec.run(id);
       for (const e of t.execs) {
         insertExec.run({ trade_id: id, dt: e.dt, side: e.side, qty: e.qty, price: e.price, commission: e.commission });
       }
       if (exists) updated++; else inserted++;
     }
-  });
-  tx();
-  return { inserted, updated, skipped, errors: errors.slice(0, 20), mode: 'tape' };
+  };
+  if (dryRun) work();
+  else db.transaction(work)();
+  return { inserted, updated, skipped, errors: errors.slice(0, 20), mode: 'tape', preview: dryRun ? previewTrades.slice(0, 20) : undefined };
 }

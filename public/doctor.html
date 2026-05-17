@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0b0c0e"/>
+<title>TradeLab · Doctor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0c0e'/%3E%3Ctext x='32' y='44' text-anchor='middle' fill='%23f0b341' font-family='serif' font-size='40'%3EL%3C/text%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="/assets/app.css"/>
+<script src="/assets/vendor/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="/"><span>Trade<span class="dot">·</span>Lab</span><span class="tag">v2</span></a>
+  <div class="nav-links">
+    <a href="/">Overall</a>
+    <a href="/today">Daily</a>
+    <a href="/trades">Trades</a>
+    <a href="/doctor" class="active">Doctor</a>
+  </div>
+</nav>
+
+<style>
+  /* ---------- Doctor ---------- */
+  .doc-settings { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;
+    padding:14px 16px; background:var(--ink-2); border:1px solid var(--line);
+    border-radius:14px; margin-bottom:18px; }
+  .doc-settings .field { display:flex; flex-direction:column; gap:5px; }
+  .doc-settings label { font-family:var(--mono); font-size:10px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--muted); }
+  .doc-settings .text, .doc-settings select { background:#0a0b0e; color:var(--text);
+    border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+    font-family:var(--mono); font-size:13px; min-width:140px; }
+  .doc-settings .text:focus, .doc-settings select:focus { border-color:var(--amber); outline:none; }
+
+  .info-stats { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap:10px; margin-bottom:20px; }
+  .info-stats .istat { padding:12px 14px; border:1px solid var(--line-soft); border-radius:12px;
+    background:#0a0b0e; }
+  .info-stats .istat .l { font-family:var(--mono); font-size:9px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--muted); }
+  .info-stats .istat .v { font-family:var(--serif); font-size:24px; margin-top:4px; }
+  .info-stats .istat .h { font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:3px; }
+
+  .tier-badge { display:inline-block; padding:6px 12px; border-radius:999px;
+    background:var(--amber-soft); color:var(--amber); font-family:var(--mono);
+    font-size:10px; letter-spacing:0.16em; text-transform:uppercase; margin-bottom:14px; }
+  .tier-badge.empty { background:#1a0e0e; color:#f08274; border:1px solid #4a1c1c; }
+
+  .headline { display:grid; grid-template-columns: auto 1fr; gap:24px; align-items:center;
+    padding:28px 28px; border:1px solid var(--line); border-radius:18px;
+    background:linear-gradient(140deg, var(--ink-2), var(--panel) 70%); margin-bottom:24px; }
+  .headline .grade { font-family:var(--serif); font-size:110px; line-height:1;
+    letter-spacing:-0.04em; padding-right:24px; border-right:1px solid var(--line-soft); }
+  .headline .right .traj { font-family:var(--mono); font-size:11px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:8px; display:flex; gap:8px; align-items:center; }
+  .headline .right .traj .arrow { font-size:22px; line-height:1; }
+  .headline .right h2 { font-family:var(--serif); font-size:30px; margin:0 0 6px; }
+  .headline .right p { color:var(--muted); margin:0; max-width:64ch; }
+
+  /* Grade color tokens */
+  .grade-A-plus, .grade-A, .grade-A-minus { color:#8fd49a; }
+  .grade-B, .grade-B-plus, .grade-B-minus { color:#7aa8d8; }
+  .grade-C, .grade-C-plus, .grade-C-minus { color:#f0d56b; }
+  .grade-D, .grade-D-plus, .grade-D-minus { color:#e9985a; }
+  .grade-F { color:#f08274; }
+
+  .traj-up   { color:#8fd49a; }
+  .traj-flat { color:var(--muted); }
+  .traj-down { color:#f08274; }
+
+  .section-head { display:flex; align-items:baseline; gap:14px; margin: 26px 0 12px; }
+  .section-head h3 { font-family:var(--serif); font-size:22px; margin:0; letter-spacing:-0.01em; }
+  .section-head .sub { color:var(--muted); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; }
+
+  .category-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap:12px; margin-bottom:8px; }
+  .cat-card { padding:16px 16px 14px; border:1px solid var(--line); border-radius:14px;
+    background:var(--ink-2); }
+  .cat-card .h { font-family:var(--mono); font-size:10px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .cat-card .g { font-family:var(--serif); font-size:42px; line-height:1; letter-spacing:-0.02em; }
+  .cat-card .score { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; }
+  .cat-card .traj-line { margin-top:8px; font-family:var(--mono); font-size:10px; letter-spacing:0.12em; }
+
+  .findings { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap:12px; margin-bottom:8px; }
+  .finding { padding:14px 16px; border:1px solid var(--line); border-radius:12px;
+    background:var(--ink-2); }
+  .finding .tag { display:inline-block; padding:3px 9px; border-radius:999px;
+    font-family:var(--mono); font-size:9px; letter-spacing:0.16em; text-transform:uppercase;
+    margin-bottom:8px; }
+  .finding.weakness .tag { background:#4a1c1c33; color:#f08274; border:1px solid #4a1c1c; }
+  .finding.opportunity .tag { background:var(--amber-soft); color:var(--amber); border:1px solid var(--line); }
+  .finding.strength .tag { background:#2c523622; color:#8fd49a; border:1px solid #2c5236; }
+  .finding p { margin:0; font-size:13px; line-height:1.55; }
+
+  .metric-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:10px; }
+  .metric { padding:14px 14px 12px; border:1px solid var(--line); border-radius:12px;
+    background:var(--ink-2); position:relative; }
+  .metric .name-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .metric .name { font-family:var(--mono); font-size:10px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--muted); }
+  .metric .hint { width:14px; height:14px; border-radius:50%; border:1px solid var(--line);
+    color:var(--muted); font-size:9px; display:inline-grid; place-items:center; cursor:help;
+    background:#0a0b0e; }
+  .metric .v-row { display:flex; align-items:baseline; gap:12px; margin-top:10px; }
+  .metric .value { font-family:var(--serif); font-size:28px; line-height:1; }
+  .metric .grade { font-family:var(--serif); font-size:22px; margin-left:auto; letter-spacing:-0.02em; }
+  .metric .grade.suppressed { color:var(--muted); font-size:18px; font-family:var(--mono); }
+  .metric .note { font-size:10px; color:var(--muted); margin-top:8px; line-height:1.5; }
+  .metric.untrusted { border-style:dashed; }
+
+  .tt {
+    position:relative;
+  }
+  .tt:hover .tt-body { display:block; }
+  .tt-body { display:none; position:absolute; right:-6px; top:24px; width:260px;
+    background:#0a0b0e; border:1px solid var(--line); border-radius:8px; padding:9px 11px;
+    font-family:var(--mono); font-size:11px; line-height:1.5; color:var(--text);
+    box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:50; text-transform:none; letter-spacing:0; }
+
+  .chart-box { background:var(--ink-2); border:1px solid var(--line); border-radius:14px;
+    padding:14px 14px 8px; }
+  .chart-box .title { display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:8px; }
+  .chart-box .title h4 { font-family:var(--serif); font-size:18px; margin:0; }
+  .chart-box .title .sub { font-family:var(--mono); font-size:10px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--muted); }
+  .chart-host { width:100%; height:200px; }
+
+  .traj-mini { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap:10px; margin-bottom:18px; }
+  .traj-mini .card { padding:13px 14px; border:1px solid var(--line); border-radius:12px;
+    background:var(--ink-2); }
+  .traj-mini .name { font-family:var(--mono); font-size:10px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--muted); }
+  .traj-mini .pair { display:flex; align-items:baseline; gap:10px; margin-top:8px; }
+  .traj-mini .now { font-family:var(--serif); font-size:24px; }
+  .traj-mini .prior { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .traj-mini .delta { font-family:var(--mono); font-size:11px; margin-left:auto; }
+
+  .empty-state { padding:40px 20px; text-align:center; color:var(--muted);
+    border:1.5px dashed var(--line); border-radius:14px; }
+  .empty-state .ico { font-family:var(--serif); font-size:36px; color:var(--amber); }
+  .empty-state h2 { font-family:var(--serif); margin:6px 0; color:var(--text); }
+
+  .heatmap { display:grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap:4px; }
+  .heatmap .cell { padding:6px 4px; text-align:center; border-radius:6px;
+    font-family:var(--mono); font-size:10px; }
+  .heatmap .cell .t { color:var(--muted); }
+  .heatmap .cell .n { display:block; margin-top:2px; font-size:11px; }
+
+  .weekday-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap:6px; }
+  .weekday-row .day { padding:8px; text-align:center; border:1px solid var(--line-soft);
+    border-radius:8px; background:#0a0b0e; }
+  .weekday-row .day .n { font-family:var(--serif); font-size:18px; }
+  .weekday-row .day .l { color:var(--muted); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; }
+
+  /* ----- excluded-outlier banner ----- */
+  .outlier-banner { background:#1a0e0e; border:1px solid #4a1c1c; border-radius:12px;
+    padding:14px 16px; margin-bottom:18px; }
+  .outlier-banner .h { font-family:var(--mono); font-size:10px; letter-spacing:0.16em;
+    text-transform:uppercase; color:#f08274; margin-bottom:8px; }
+  .outlier-banner .body { font-size:13px; color:var(--text); line-height:1.55; }
+  .outlier-banner details { margin-top:10px; }
+  .outlier-banner summary { cursor:pointer; color:var(--muted); font-family:var(--mono); font-size:11px; }
+  .outlier-banner table { width:100%; margin-top:8px; font-family:var(--mono); font-size:11px;
+    border-collapse:collapse; }
+  .outlier-banner th, .outlier-banner td { text-align:left; padding:5px 8px;
+    border-bottom:1px solid var(--line-soft); }
+  .outlier-banner th { color:var(--muted); font-weight:normal; }
+
+  /* ----- state-vs-baseline ladder ----- */
+  .ladder { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:10px; }
+  .ladder-col { background:var(--ink-2); border:1px solid var(--line); border-radius:14px;
+    padding:14px 14px 12px; display:flex; flex-direction:column; }
+  .ladder-col.empty { opacity:0.55; }
+  .ladder-col .title { font-family:var(--serif); font-size:18px; line-height:1.1; letter-spacing:-0.01em; }
+  .ladder-col .sub { font-family:var(--mono); font-size:10px; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--muted); margin-top:4px; }
+  .ladder-col .dates { font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:6px; }
+  .ladder-col .lrows { margin-top:10px; display:flex; flex-direction:column; gap:5px; }
+  .ladder-col .lrow { display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:1px solid var(--line-soft); padding:5px 0; }
+  .ladder-col .lk { font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:0.04em; }
+  .ladder-col .lv { font-family:var(--serif); font-size:18px; color:var(--text); }
+  .ladder-col .lvw { display:inline-flex; align-items:baseline; gap:8px; }
+  .ladder-col .lgrade { font-family:var(--serif); font-size:14px; line-height:1;
+    letter-spacing:-0.02em; padding:2px 7px; border-radius:6px;
+    background:rgba(255,255,255,0.04); border:1px solid var(--line-soft); }
+  .ladder-col .empty-msg { font-family:var(--mono); font-size:11px; color:var(--muted);
+    margin-top:18px; padding:14px; border:1px dashed var(--line); border-radius:8px; text-align:center; }
+  @media (max-width: 880px) { .ladder { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .ladder { grid-template-columns: 1fr; } }
+
+  /* ----- date-range chips ----- */
+  .preset-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .preset-chip { padding:6px 10px; border:1px solid var(--line); border-radius:999px;
+    background:#0a0b0e; color:var(--muted); font-family:var(--mono); font-size:11px;
+    letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;
+    transition: border-color .15s ease, color .15s ease; }
+  .preset-chip:hover { border-color:var(--amber); color:var(--text); }
+  .preset-chip.active { border-color:var(--amber); color:var(--amber); background:var(--amber-soft); }
+
+  /* ----- chart legends ----- */
+  .chart-legend { display:flex; gap:14px; flex-wrap:wrap; padding:0 2px 6px; }
+  .chart-legend .item { display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .chart-legend .sw { width:14px; height:3px; border-radius:2px; display:inline-block; }
+  .chart-legend .sw.dash { background-image:linear-gradient(to right, currentColor 50%, transparent 50%);
+    background-size:6px 3px; background-color:transparent; height:3px; }
+
+  /* ----- category description + tooltip body ----- */
+  .cat-card .desc { font-size:12px; color:var(--muted); line-height:1.5; margin-top:8px; }
+  .cat-card .weight { font-family:var(--mono); font-size:10px; color:var(--dim);
+    letter-spacing:0.12em; text-transform:uppercase; margin-top:6px; }
+  .cat-card .contrib { font-family:var(--mono); font-size:11px; color:var(--muted);
+    margin-top:8px; border-top:1px solid var(--line-soft); padding-top:8px; line-height:1.6; }
+  .cat-card .contrib b { color:var(--text); font-weight:500; }
+
+  /* ----- font bumps for readability ----- */
+  body { font-size: 15px; }
+  .metric .name { font-size: 12px; }
+  .metric .value { font-size: 30px; }
+  .metric .grade { font-size: 26px; }
+  .cat-card .h { font-size: 12px; }
+  .cat-card .g { font-size: 46px; }
+  .cat-card .score { font-size: 12px; }
+  .info-stats .istat .l { font-size: 11px; }
+  .info-stats .istat .v { font-size: 26px; }
+  .info-stats .istat .h { font-size: 11px; }
+  .heatmap .cell { font-size: 11px; }
+  .heatmap .cell .n { font-size: 12px; }
+  .chart-box .title h4 { font-size: 20px; }
+  .finding p { font-size: 14px; }
+  .tt-body { font-size: 12px; }
+
+  @media (max-width: 720px) {
+    .headline { grid-template-columns: 1fr; }
+    .headline .grade { padding-right:0; border-right:none; border-bottom:1px solid var(--line-soft); padding-bottom:18px; font-size:80px; }
+  }
+</style>
+
+<main class="page">
+  <div class="hero">
+    <span class="eyebrow" id="eyebrow">Trade Doctor</span>
+    <h1 class="h-title">Trade Doctor</h1>
+    <p class="h-sub">Objective evaluation of your trading decisions, normalized into R-multiples. Grades the quality of decisions, not account-level returns.</p>
+  </div>
+
+  <div class="doc-settings">
+    <div class="field">
+      <label for="rValue">Typical $ risk per trade (R-value)</label>
+      <input class="text" id="rValue" type="number" step="1" min="1" max="100000" placeholder="e.g. 100"/>
+    </div>
+    <div class="field">
+      <label for="fromDate">From</label>
+      <input class="text" id="fromDate" type="date"/>
+    </div>
+    <div class="field">
+      <label for="toDate">To</label>
+      <input class="text" id="toDate" type="date"/>
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn primary" id="evaluate">evaluate →</button>
+    </div>
+    <div class="field" style="flex-basis:100%;">
+      <label>Quick range</label>
+      <div class="preset-row" id="presetRow">
+        <button class="preset-chip" data-days="7">7d</button>
+        <button class="preset-chip" data-days="30">30d</button>
+        <button class="preset-chip" data-days="90">90d</button>
+        <button class="preset-chip" data-days="365">1y</button>
+        <button class="preset-chip" data-days="">All</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="doctor-root">
+    <div class="empty-state">
+      <div class="ico">⌛</div>
+      <h2>Enter your R-value to begin</h2>
+      <p>Set the typical dollar amount you risk per trade and click <b>evaluate</b>.</p>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+const LS_R = 'tl.doctor.r';
+const LS_FROM = 'tl.doctor.from';
+const LS_TO = 'tl.doctor.to';
+
+const $ = (s, el = document) => el.querySelector(s);
+
+// 1-sentence explanations for every metric card.
+const METRIC_INFO = {
+  profit_factor: { label: 'Profit Factor', explain: 'Gross profits ÷ gross losses. >1 means winners exceed losers in dollars.' },
+  win_rate: { label: 'Win Rate', explain: 'Share of closed trades with positive PnL.' },
+  payoff_ratio: { label: 'Payoff Ratio', explain: 'Average win ÷ average loss. Pairs with Win Rate — one is meaningless without the other.' },
+  expectancy_r: { label: 'Expectancy (R)', explain: 'Average R-multiple per trade. Positive means your decisions are profitable in expectation.' },
+  largest_loss_vs_win: { label: 'Largest Loss vs Largest Win', explain: '|biggest loss| ÷ biggest win. >1 means a single loss can erase a single win.' },
+  loss_vs_daily_win: { label: 'Largest Loss vs Avg Daily Win', explain: '|biggest loss| ÷ average green day. How many good days one bad trade can eat.' },
+  closed_trade_giveback: {
+    label: 'Closed-Trade Give-Back',
+    explain: "Measures the average % of your peak realized cumulative PnL given back by day's end across green days. Captures the pattern of locking in profits early, then losing them on later trades. Does not capture round-trips within a single open position — only buy/sell fills are available, not unrealized peaks.",
+  },
+  weekly_giveback: { label: 'Weekly Give-Back', explain: 'Average % of peak weekly cum PnL given back by week close, across green weeks. Less affected by unrealized-peak blind spots.' },
+  edge_concentration: { label: 'Edge Concentration', explain: '% of total PnL produced by your top 10% of trades. High values mean the rest of your trades barely move the needle. Undefined ("—") when total PnL is non-positive or the bottom 90% of trades lost more than the top 10% earned.' },
+  pct_profitable_days:   { label: '% Profitable Days',   explain: 'Share of trading days with positive net PnL.' },
+  pct_profitable_weeks:  { label: '% Profitable Weeks',  explain: 'Share of trading weeks with positive net PnL.' },
+  pct_profitable_months: { label: '% Profitable Months', explain: 'Share of trading months with positive net PnL.' },
+  pf_cov: { label: 'PF Stability (CoV)', explain: 'Coefficient of variation of weekly profit factor. Lower = more consistent edge across weeks.' },
+  max_r_drawdown: { label: 'Max R-Drawdown', explain: 'Largest peak-to-trough drop on the cumulative-R curve, in R units.' },
+  recovery_factor: { label: 'Recovery Factor', explain: 'Total cumulative R ÷ max R-drawdown. How much equity you produced per unit of drawdown pain.' },
+  equity_r2: { label: 'Equity Curve R²', explain: 'R² of linear regression on the cumulative-R curve. Higher = smoother, more linear growth.' },
+  r_sharpe:  { label: 'R-Sharpe (Annualized)',  explain: 'Mean daily R ÷ stdev of daily R, ×√252. Risk-adjusted return in R-units.' },
+  r_calmar:  { label: 'R-Calmar',  explain: 'Annualized R ÷ max R-drawdown. Return per unit of worst-case drawdown.' },
+  r_sortino: { label: 'R-Sortino', explain: 'Mean daily R ÷ downside deviation of daily R, ×√252. Like Sharpe, but only penalizes downside.' },
+  gain_to_pain: { label: 'Gain-to-Pain', explain: 'Sum of monthly R ÷ sum of |negative monthly R|. >1 means cumulative gains exceed cumulative pain.' },
+};
+
+// Each metric is rendered inside this tier section. Tiers correspond to the
+// data-window gates documented in the spec.
+const TIER_LAYOUT = [
+  { tier: 'always_on', title: 'Always-On Metrics', sub: '≥ 10 trades',
+    metrics: ['profit_factor','win_rate','payoff_ratio','expectancy_r','largest_loss_vs_win','loss_vs_daily_win'] },
+  { tier: 'intraday',  title: 'Intraday Metrics',  sub: '≥ 5 trading days',
+    metrics: ['closed_trade_giveback','edge_concentration'] },
+  { tier: 'weekly',    title: 'Weekly Metrics',    sub: '≥ 2 weeks',
+    metrics: ['weekly_giveback','pct_profitable_days'] },
+  { tier: 'monthly',   title: 'Monthly Metrics',   sub: '≥ 20 trading days',
+    metrics: ['max_r_drawdown','recovery_factor','r_sortino','equity_r2','pct_profitable_weeks'] },
+  { tier: 'long_term', title: 'Long-Term Metrics', sub: '≥ 60 trading days',
+    metrics: ['r_sharpe','r_calmar','gain_to_pain','pct_profitable_months','pf_cov'] },
+];
+
+const TIER_ORDER = ['insufficient','always_on','intraday','weekly','monthly','long_term'];
+const TIER_RANK = Object.fromEntries(TIER_ORDER.map((t, i) => [t, i]));
+
+// Whether to *render* each tier section, given the user's resolved tier and
+// whether the underlying counts meet that tier's threshold.
+function tierVisible(sectionTier, counts) {
+  switch (sectionTier) {
+    case 'always_on': return counts.trades >= 10;
+    case 'intraday':  return counts.days >= 5;
+    case 'weekly':    return counts.weeks >= 2;
+    case 'monthly':   return counts.days >= 20;
+    case 'long_term': return counts.days >= 60;
+    default: return false;
+  }
+}
+
+function gradeClass(letter) {
+  if (!letter) return '';
+  return 'grade-' + letter.replace('+','-plus').replace('-','-minus');
+}
+
+function fmtValue(key, value) {
+  if (value == null || !Number.isFinite(value)) return '—';
+  switch (key) {
+    case 'profit_factor':
+    case 'payoff_ratio':
+    case 'recovery_factor':
+    case 'r_sharpe':
+    case 'r_calmar':
+    case 'r_sortino':
+    case 'gain_to_pain':
+    case 'pf_cov':
+      return value.toFixed(2);
+    case 'largest_loss_vs_win':
+    case 'loss_vs_daily_win':
+      // Cap pathological ratios so a |trade|>50R outlier (if hygiene ever
+      // fails) doesn't render as "3384×". Above 10× the exact number is
+      // meaningless anyway — the signal is "way worse than 1×".
+      if (Math.abs(value) > 10) return (value < 0 ? '<−10' : '>10') + '×';
+      return value.toFixed(2);
+    case 'expectancy_r':
+      return value.toFixed(2) + 'R';
+    case 'max_r_drawdown':
+      return value.toFixed(1) + 'R';
+    case 'equity_r2':
+      return value.toFixed(2);
+    case 'win_rate':
+    case 'closed_trade_giveback':
+    case 'weekly_giveback':
+    case 'edge_concentration':
+    case 'pct_profitable_days':
+    case 'pct_profitable_weeks':
+    case 'pct_profitable_months':
+      return Math.round(value * 100) + '%';
+    default: return value.toFixed(2);
+  }
+}
+
+function trajClass(direction) {
+  if (direction === 'up') return 'traj-up';
+  if (direction === 'down') return 'traj-down';
+  return 'traj-flat';
+}
+function trajArrow(direction) {
+  if (direction === 'up') return '↑';
+  if (direction === 'down') return '↓';
+  return '→';
+}
+
+function renderMetric(key, m, opts = {}) {
+  const info = METRIC_INFO[key];
+  if (!info) return '';
+  if (!m) return '';
+  const grade = m.letter ? `<span class="grade ${gradeClass(m.letter)}">${m.letter}</span>`
+                         : `<span class="grade suppressed">—</span>`;
+  const untrustedClass = (m.trusted === false) ? 'untrusted' : '';
+  const noteParts = [];
+  if (m.trusted === false && key === 'closed_trade_giveback') {
+    noteParts.push(`Low-trust: only ${m.green_days || 0} green days at ${(m.avg_closed_trades_per_green_day || 0).toFixed(1)} closed trades/day on avg. Grade suppressed below 5 trades/green-day.`);
+  }
+  if (m.trusted === false && key === 'pf_cov') {
+    noteParts.push('Low-trust: requires ≥4 full weeks of data.');
+  }
+  // Edge-concentration undefined-state moved to tooltip (Priority 3 #19).
+  if (key === 'equity_r2' && m.downgraded) {
+    noteParts.push(`Grade capped at C because your equity curve has negative slope (${m.slope.toFixed(2)}R/day). A linear curve going down is consistent losses, not consistent profits.`);
+  }
+  return `
+    <div class="metric ${untrustedClass}">
+      <div class="name-row">
+        <span class="name">${info.label}</span>
+        <span class="tt"><span class="hint">?</span><span class="tt-body">${info.explain}</span></span>
+      </div>
+      <div class="v-row">
+        <span class="value">${fmtValue(key, m.value)}</span>
+        ${grade}
+      </div>
+      ${noteParts.length ? `<div class="note">${noteParts.join(' ')}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderOutlierBanner(d) {
+  const out = d.excluded_outliers || [];
+  if (!out.length) return '';
+  const rows = out.slice(0, 20).map(o => `
+    <tr>
+      <td>${o.id}</td>
+      <td>${(o.symbol || '').slice(0, 40)}</td>
+      <td>${(o.entry_dt || '').slice(0, 10)}</td>
+      <td style="text-align:right;">$${o.net_pnl.toFixed(2)}</td>
+      <td style="text-align:right;">${o.r_multiple.toFixed(1)}R</td>
+    </tr>`).join('');
+  const more = out.length > 20 ? `<tr><td colspan="5" style="color:var(--muted); text-align:center;">… and ${out.length - 20} more</td></tr>` : '';
+  return `
+    <div class="outlier-banner">
+      <div class="h">⚠ ${out.length} outlier trade${out.length===1?'':'s'} excluded</div>
+      <div class="body">
+        Trades with |PnL / R| above 50× have been excluded from this evaluation. These are almost certainly bad data
+        (wrong multiplier, busted execution, an open position that slipped through). Review and fix them in
+        <a href="/trades" style="color:var(--amber);">Trades</a>.
+      </div>
+      <details>
+        <summary>Show excluded trades</summary>
+        <table>
+          <thead><tr><th>ID</th><th>Symbol</th><th>Date</th><th style="text-align:right;">Net PnL</th><th style="text-align:right;">R-multiple</th></tr></thead>
+          <tbody>${rows}${more}</tbody>
+        </table>
+      </details>
+    </div>
+  `;
+}
+
+// Informational stats above the grades — read your own style from these.
+function renderInfoStats(d) {
+  const s = d.info_stats || {};
+  const hold = s.median_hold_min;
+  const tpd = s.avg_trades_per_day;
+  const tpgd = s.avg_trades_per_green_day;
+
+  // Build a casual style hint from observed numbers so users don't self-classify.
+  // These thresholds are descriptive only; they don't feed grading.
+  let hint = '';
+  if (tpd != null && hold != null) {
+    if (tpd >= 15 || hold < 5) hint = 'shape: scalper-like';
+    else if (tpd >= 4 || hold < 60) hint = 'shape: day-trader-like';
+    else hint = 'shape: swing-like';
+  }
+
+  const fmtHold = (m) => {
+    if (m == null || !Number.isFinite(m)) return '—';
+    if (m < 1) return Math.round(m * 60) + 's';
+    if (m < 60) return m.toFixed(m < 10 ? 1 : 0) + 'm';
+    const h = m / 60;
+    return h.toFixed(h < 10 ? 1 : 0) + 'h';
+  };
+  const fmt1 = (v) => (v == null || !Number.isFinite(v)) ? '—' : v.toFixed(1);
+
+  return `
+    <div class="info-stats">
+      <div class="istat">
+        <div class="l">Median hold time</div>
+        <div class="v">${fmtHold(hold)}</div>
+        <div class="h">how long trades typically live</div>
+      </div>
+      <div class="istat">
+        <div class="l">Avg trades / day</div>
+        <div class="v">${fmt1(tpd)}</div>
+        <div class="h">across ${d.counts.days || 0} trading day${d.counts.days===1?'':'s'}</div>
+      </div>
+      <div class="istat">
+        <div class="l">Avg trades / green day</div>
+        <div class="v">${fmt1(tpgd)}</div>
+        <div class="h">across ${d.counts.green_days || 0} green day${d.counts.green_days===1?'':'s'}</div>
+      </div>
+      ${hint ? `<div class="istat" style="background:var(--amber-soft); border-color:var(--amber);">
+        <div class="l" style="color:var(--amber);">Style read</div>
+        <div class="v" style="font-size:18px;">${hint.replace('shape: ','')}</div>
+        <div class="h">descriptive — does not affect grading</div>
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function renderHeadline(d) {
+  const grade = d.overall?.letter || '—';
+  const traj = d.trajectory?.modifier || '→';
+  let diag = 'Insufficient data to evaluate.';
+  // Use the server's trajectory-aware headline pick if present.
+  if (d.headline_finding) {
+    diag = d.headline_finding.message;
+  } else if (d.findings && d.findings.length) {
+    diag = d.findings[0].message;
+  } else if (d.overall?.letter) {
+    diag = `Overall composite grade based on ${Object.values(d.categories).filter(c=>c.score!=null).length} of 5 categories scored.`;
+  }
+  const trajCls = traj.startsWith('↑') ? 'traj-up' : (traj.startsWith('↓') ? 'traj-down' : 'traj-flat');
+  return `
+    <div class="headline">
+      <div class="grade ${gradeClass(grade)}">${grade}</div>
+      <div class="right">
+        <div class="traj ${trajCls}"><span class="arrow">${traj}</span><span>Trajectory</span></div>
+        <h2>Decision quality grade</h2>
+        <p>${diag}</p>
+      </div>
+    </div>
+  `;
+}
+
+// State-vs-baseline ladder — four calendar-window snapshots side by side so
+// trajectory reads left-to-right at a glance: current state → recent trend →
+// short baseline → long baseline. Descriptive, not graded.
+function renderStateLadder(d) {
+  if (!d.snapshots) return '';
+  const cols = [
+    { key: 'd5',  title: 'Current State',   sub: 'last 5 trading days',   note: 'what you just did',           includes: ['pf','exp','wr','cumR','trades'] },
+    { key: 'd10', title: 'Recent Trend',    sub: 'last 10 trading days',  note: 'who you are right now',       includes: ['pf','exp','wr','cumR','trades','pctDays'] },
+    { key: 'd30', title: 'Short Baseline',  sub: 'last 30 trading days',  note: 'recent established pattern',  includes: ['pf','exp','wr','cumR','trades','pctDays'] },
+    { key: 'd90', title: 'Long Baseline',   sub: 'last 90 trading days',  note: 'long-run pattern',            includes: ['pf','exp','wr','cumR','trades','pctDays'] },
+  ];
+  const fmtPF  = (v) => v == null || !Number.isFinite(v) ? '—' : v.toFixed(2);
+  const fmtR   = (v) => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + 'R';
+  const fmtPct = (v) => v == null ? '—' : Math.round(v * 100) + '%';
+
+  const ladderRows = cols.map(col => {
+    const s = d.snapshots[col.key];
+    if (!s) return `<div class="ladder-col empty"><div class="title">${col.title}</div><div class="sub">${col.sub}</div><div class="empty-msg">no data</div></div>`;
+    if (s.displayable === false) {
+      return `<div class="ladder-col empty">
+        <div class="title">${col.title}</div>
+        <div class="sub">${col.sub} · ${col.note}</div>
+        <div class="empty-msg">Insufficient history for ${col.title}<br/><span style="color:var(--dim); font-size:10px; margin-top:6px; display:block;">${s.suppress_reason || ''}</span></div>
+      </div>`;
+    }
+    // Ladder is descriptive — no letter grades. Grades belong on the graded
+    // metric cards below. Per audit (Priority 2 #5).
+    const row = (label, value, opts = {}) => `
+      <div class="lrow">
+        <span class="lk">${label}</span>
+        <span class="lv" ${opts.color ? `style="color:${opts.color}"` : ''}>${value}</span>
+      </div>`;
+    const parts = [];
+    parts.push(row('Profit Factor', fmtPF(s.pf)));
+    // Expectancy displays both representations; daily is the canonical headline.
+    const expCombo = s.expectancy_r != null && s.expectancy_r_per_trade != null
+      ? `${fmtR(s.expectancy_r)}/day <span style="color:var(--dim); font-size:11px;">· ${(s.expectancy_r_per_trade >= 0 ? '+' : '') + s.expectancy_r_per_trade.toFixed(3)}R/trade</span>`
+      : '—';
+    parts.push(row('Expectancy', expCombo));
+    parts.push(row('Win Rate', fmtPct(s.win_rate)));
+    parts.push(row('Cum R', fmtR(s.cum_r), { color: (s.cum_r ?? 0) >= 0 ? '#8fd49a' : '#f08274' }));
+    parts.push(row('Trades', String(s.trades)));
+    if (col.includes.includes('pctDays')) parts.push(row('% Profitable Days', fmtPct(s.pct_profitable_days)));
+    return `<div class="ladder-col">
+      <div class="title">${col.title}</div>
+      <div class="sub">${col.sub} · ${col.note}</div>
+      <div class="dates">${s.startDate} → ${s.endDate}</div>
+      <div class="lrows">${parts.join('')}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <section>
+      <div class="section-head">
+        <h3>State vs baseline</h3>
+        <span class="sub">left = most recent · descriptive, not graded
+          <span class="tt"><span class="hint" style="margin-left:8px;">?</span><span class="tt-body">Windows are CALENDAR days back from your most recent trade in the selected range. Columns are hidden when they don't contain enough trades to evaluate, or when the selected range is too narrow for the window to be distinct from a shorter one.</span></span>
+        </span>
+      </div>
+      <div class="ladder">${ladderRows}</div>
+    </section>
+  `;
+}
+
+function renderCategoryGrid(d) {
+  const html = Object.entries(d.categories).map(([key, c]) => {
+    // Per-category trajectory direction is no longer rendered: short-window
+    // category re-scoring is too noisy (drawdown, R², give-back all need more
+    // samples than 10 days). The state-ladder above shows trajectory honestly.
+    const trajLine = '';
+
+    // Sub-metric breakdown: list metrics that actually contributed (score != null).
+    const contrib = (c.breakdown || [])
+      .filter(b => b.score != null)
+      .sort((a, b) => b.weight - a.weight)
+      .map(b => {
+        const info = METRIC_INFO[b.metric];
+        const m = d.metrics[b.metric];
+        const label = info?.label || b.metric;
+        const grade = m?.letter || '—';
+        return `<div><b>${label}</b> · ${Math.round(b.weight * 100)}% weight · ${grade}</div>`;
+      }).join('');
+    const contribBlock = contrib ? `<div class="contrib">${contrib}</div>` : '';
+
+    return `
+      <div class="cat-card">
+        <div class="h">${c.label}</div>
+        <div class="g ${gradeClass(c.letter)}">${c.letter || '—'}</div>
+        <div class="score">composite score ${c.score != null ? c.score.toFixed(1) : '—'} / 100</div>
+        <div class="weight">${Math.round(c.weight * 100)}% of overall grade</div>
+        <div class="desc">${c.description || ''}</div>
+        ${trajLine}
+        ${contribBlock}
+      </div>`;
+  }).join('');
+  return `<section><div class="section-head"><h3>Categories</h3><span class="sub">5 composite scores · click each metric below for details</span></div><div class="category-grid">${html}</div></section>`;
+}
+
+function renderFindings(d) {
+  if (!d.findings?.length) {
+    return `<section><div class="section-head"><h3>Diagnostic notes</h3><span class="sub">Trade Doctor's read</span></div>
+      <div class="empty-state">No rules fired. Either your trading is balanced, or there isn't enough signal yet.</div></section>`;
+  }
+  const html = d.findings.map(f => `
+    <div class="finding ${f.type}">
+      <span class="tag">${f.type}</span>
+      <p>${f.message}</p>
+    </div>
+  `).join('');
+  return `<section><div class="section-head"><h3>Diagnostic notes</h3><span class="sub">Top ${d.findings.length} ranked by impact</span></div><div class="findings">${html}</div></section>`;
+}
+
+function renderTierSections(d) {
+  return TIER_LAYOUT.map(layout => {
+    if (!tierVisible(layout.tier, d.counts)) return '';
+    const cards = layout.metrics.map(k => renderMetric(k, d.metrics[k])).filter(Boolean).join('');
+    if (!cards) return '';
+    return `
+      <section>
+        <div class="section-head"><h3>${layout.title}</h3><span class="sub">${layout.sub}</span></div>
+        <div class="metric-grid">${cards}</div>
+      </section>`;
+  }).join('');
+}
+
+function renderWeekdayAndTOD(d) {
+  const parts = [];
+  if (d.counts.weeks >= 2 && d.series.weekday?.all?.length) {
+    const days = d.series.weekday.all;
+    const max = Math.max(...days.map(b => Math.abs(b.avg)));
+    parts.push(`
+      <section>
+        <div class="section-head"><h3>Best / worst weekday</h3><span class="sub">avg daily PnL by day of week</span></div>
+        <div class="weekday-row">
+          ${days.map(b => {
+            const cls = b.avg >= 0 ? 'pos' : 'neg';
+            const color = b.avg >= 0 ? '#8fd49a' : '#f08274';
+            const intensity = max ? Math.abs(b.avg) / max : 0;
+            return `<div class="day" style="border-color:${color}${Math.round(intensity*99).toString(16).padStart(2,'0')};">
+              <div class="l">${b.name}</div>
+              <div class="n" style="color:${color}">${b.avg >= 0 ? '+' : ''}${b.avg.toFixed(0)}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </section>`);
+  }
+  const tod = d.series.tod;
+  if (d.counts.days >= 5 && tod && tod.cells?.length) {
+    const cells = tod.cells;
+    const max = Math.max(...cells.map(b => Math.abs(b.net)));
+    const fmtBuck = (n) => (n >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(n)).toLocaleString();
+    const note = tod.outliers_excluded
+      ? `<div class="modal-help" style="margin-bottom:8px; font-size:12px; color:var(--muted);">${tod.outliers_excluded} outlier trade${tod.outliers_excluded===1?'':'s'} excluded (|PnL| &gt; $50k).</div>`
+      : '';
+    parts.push(`
+      <section>
+        <div class="section-head"><h3>Time-of-day PnL distribution</h3><span class="sub">cum PnL by 30-min ${tod.tz_label || 'CT'} bucket · stored hour, no TZ shift</span></div>
+        ${note}
+        <div class="heatmap">
+          ${cells.map(b => {
+            const color = b.net >= 0 ? '#8fd49a' : '#f08274';
+            const intensity = max ? Math.abs(b.net) / max : 0;
+            const alpha = Math.round(intensity * 64).toString(16).padStart(2,'0');
+            // De-emphasize low-sample buckets: 1–4 trades is noise, not a pattern.
+            const dim = (b.count || 0) < 5 ? 'opacity:0.35;' : '';
+            const trades = b.count != null ? `<span class="t" style="display:block;margin-top:2px;">${b.count} trade${b.count===1?'':'s'}</span>` : '';
+            return `<div class="cell" style="${dim}background:${color}${alpha}; border:1px solid ${color}33;">
+              <span class="t">${b.time}</span>
+              <span class="n" style="color:${color}">${fmtBuck(b.net)}</span>
+              ${trades}
+            </div>`;
+          }).join('')}
+        </div>
+      </section>`);
+  }
+  return parts.join('');
+}
+
+// ---------- Trajectory subsection ----------
+
+function makeChart(host, opts = {}) {
+  if (!window.LightweightCharts) return null;
+  const chart = LightweightCharts.createChart(host, {
+    width: host.clientWidth,
+    height: host.clientHeight,
+    layout: { background: { color: 'transparent' }, textColor: '#a8a294', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+    grid: { vertLines: { color: '#1d2026' }, horzLines: { color: '#1d2026' } },
+    rightPriceScale: { borderColor: '#262a31' },
+    timeScale: { borderColor: '#262a31', timeVisible: false, secondsVisible: false },
+    crosshair: { vertLine: { color: '#f0b341', width: 1 }, horzLine: { color: '#f0b341', width: 1 } },
+    ...opts,
+  });
+  return chart;
+}
+
+function toLineData(series) {
+  return series.filter(p => p.value != null && Number.isFinite(p.value))
+    .map(p => ({ time: p.date, value: p.value }));
+}
+
+function renderTrajectory(d) {
+  if (!d.trajectory) return '';
+  const haveLongTerm = d.counts.days >= 60;
+  const haveMonthly  = d.counts.days >= 20;
+  const haveWeekly4  = d.counts.weeks >= 4;
+  const haveMonthly3 = d.counts.months >= 3;
+
+  const traj = d.trajectory;
+
+  // Weekly trajectory mini-cards (PF CoV, weekly PF slope, expectancy slope)
+  const weeklyCards = haveWeekly4 ? renderWeeklyMiniCards(d) : '';
+  // Monthly trajectory mini-cards (rolling 30d PF current vs prior etc.)
+  const monthlyCards = haveMonthly3 ? renderMonthlyMiniCards(d) : '';
+
+  const legend = (items) => `<div class="chart-legend">${items.map(it => {
+    const swClass = it.style === 'dash' ? 'sw dash' : 'sw';
+    const swStyle = it.style === 'dash' ? `color:${it.color}` : `background:${it.color}`;
+    return `<span class="item"><span class="${swClass}" style="${swStyle}"></span>${it.label}</span>`;
+  }).join('')}</div>`;
+
+  const longTermBlock = haveLongTerm ? `
+    <div class="section-head"><h3>Long-term trajectory</h3><span class="sub">rolling charts · 5d = most responsive, 10d = primary, 30d = baseline</span></div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap:12px;">
+      <div class="chart-box">
+        <div class="title"><h4>Profit Factor</h4><span class="sub">rolling windows</span></div>
+        ${legend([{color:'#8fd49a', label:'5-day'},{color:'#f0b341', label:'10-day'},{color:'#7aa8d8', label:'30-day'}])}
+        <div class="chart-host" data-chart="pf_triple"></div>
+      </div>
+      <div class="chart-box">
+        <div class="title"><h4>R-Sharpe</h4><span class="sub">rolling windows · short windows gated by trade count</span></div>
+        ${legend([{color:'#8fd49a', label:'5-day (≥30 trades)'},{color:'#f0b341', label:'10-day (≥50 trades)'},{color:'#7aa8d8', label:'30-day'}])}
+        <div class="chart-host" data-chart="sharpe_triple"></div>
+      </div>
+      <div class="chart-box">
+        <div class="title"><h4>Cumulative R</h4><span class="sub">with linear fit</span></div>
+        ${legend([{color:'#8fd49a', label:'Cumulative R'},{color:'#f0b341', label:'Linear fit', style:'dash'}])}
+        <div class="chart-host" data-chart="cum_r"></div>
+      </div>
+      ${(d.series.rolling_edge_concentration_30 || []).some(p => p.value != null) ? `
+      <div class="chart-box">
+        <div class="title"><h4>Edge Concentration</h4><span class="sub">rolling 30d</span></div>
+        ${legend([{color:'#f08274', label:'Top 10% / total PnL'}])}
+        <div class="chart-host" data-chart="edge_30"></div>
+      </div>` : `
+      <div class="chart-box">
+        <div class="title"><h4>Edge Concentration</h4><span class="sub">rolling 30d</span></div>
+        <div style="padding:24px 12px; color:var(--muted); font-family:var(--mono); font-size:11px; line-height:1.6;">
+          Edge concentration could not be plotted — see the metric card above for explanation. The ratio is undefined
+          when total PnL is non-positive or the bottom 90% of trades lost more than the top 10% earned.
+        </div>
+      </div>`}
+    </div>
+  ` : '';
+
+  return `
+    <section>
+      <div class="section-head"><h3>Trajectory</h3><span class="sub">how the grade is changing</span></div>
+      ${weeklyCards}
+      ${monthlyCards}
+      ${longTermBlock}
+    </section>
+  `;
+}
+
+function avg(arr) {
+  const xs = arr.filter(v => v != null && Number.isFinite(v));
+  if (!xs.length) return null;
+  return xs.reduce((s, x) => s + x, 0) / xs.length;
+}
+
+function renderWeeklyMiniCards(d) {
+  const weeks = d.series.weekly_pfs;
+  if (!weeks || weeks.length < 4) return '';
+
+  // Last 4 weeks vs the 4 weeks before that — both averages, with explicit
+  // boundaries surfaced so the comparison is auditable.
+  const last4 = weeks.slice(-4);
+  const prior4 = weeks.length >= 8 ? weeks.slice(-8, -4) : null;
+  const lastPFs = last4.map(w => w.profitFactor);
+  const priorPFs = prior4 ? prior4.map(w => w.profitFactor) : null;
+  const lastAvg = avg(lastPFs);
+  const priorAvg = priorPFs ? avg(priorPFs) : null;
+
+  let pfDir = '→', pfDelta = null;
+  if (lastAvg != null && priorAvg != null) {
+    pfDelta = lastAvg - priorAvg;
+    pfDir = pfDelta > 0.1 ? '↑' : pfDelta < -0.1 ? '↓' : '→';
+  }
+
+  const lastRangeLabel  = last4.length ? `${last4[0].weekStart} → ${last4[last4.length-1].weekStart}` : '—';
+  const priorRangeLabel = prior4 ? `${prior4[0].weekStart} → ${prior4[prior4.length-1].weekStart}` : 'not enough history';
+
+  const cov = d.metrics.pf_cov;
+
+  return `
+    <div class="section-head"><h3>Weekly trajectory</h3><span class="sub">last 4 weeks vs prior 4 weeks</span></div>
+    <div class="traj-mini">
+      <div class="card">
+        <div class="name">PF stability (CoV, all weeks)</div>
+        <div class="pair">
+          <span class="now">${cov?.value != null ? cov.value.toFixed(2) : '—'}</span>
+          <span class="prior">${cov?.letter ? 'grade ' + cov.letter : 'low-trust'}</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="name">Weekly PF — last 4 avg</div>
+        <div class="pair">
+          <span class="now">${lastAvg != null ? lastAvg.toFixed(2) : '—'}</span>
+          <span class="prior">prior 4 avg ${priorAvg != null ? priorAvg.toFixed(2) : '—'}</span>
+          <span class="delta ${pfDir==='↑'?'traj-up':(pfDir==='↓'?'traj-down':'traj-flat')}">${pfDir} ${pfDelta != null ? (pfDelta>0?'+':'') + pfDelta.toFixed(2) : ''}</span>
+        </div>
+        <div class="h" style="font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:6px;">
+          last: ${lastRangeLabel}<br/>prior: ${priorRangeLabel}
+        </div>
+      </div>
+      <div class="card">
+        <div class="name">Expectancy R (full period)</div>
+        <div class="pair">
+          <span class="now">${d.metrics.expectancy_r?.value != null ? d.metrics.expectancy_r.value.toFixed(2) + 'R' : '—'}</span>
+          <span class="prior">grade ${d.metrics.expectancy_r?.letter || '—'}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMonthlyMiniCards(d) {
+  // Current state (10d) compared to two baselines: short (30d) and long (90d).
+  // The 10d-vs-90d row answers "is this trend sustained against the long
+  // baseline?" which the 10-vs-30 row can't, since 30 already includes
+  // most of the recent recovery for a fast turnaround.
+  const s10 = d.snapshots?.d10, s30 = d.snapshots?.d30, s90 = d.snapshots?.d90;
+  if (!s10 || !s30) return '';
+
+  const card = (name, now, base, baseLabel, fmt, betterHigher = true, tol = 0) => {
+    let dir = '→', delta = null;
+    if (now != null && base != null && Number.isFinite(now) && Number.isFinite(base)) {
+      delta = now - base;
+      if (Math.abs(delta) <= tol) dir = '→';
+      else dir = (delta > 0) === betterHigher ? '↑' : '↓';
+    }
+    const cls = dir === '↑' ? 'traj-up' : dir === '↓' ? 'traj-down' : 'traj-flat';
+    return `
+      <div class="card">
+        <div class="name">${name}</div>
+        <div class="pair">
+          <span class="now">${now != null ? fmt(now) : '—'}</span>
+          <span class="prior">${baseLabel} ${base != null ? fmt(base) : '—'}</span>
+          <span class="delta ${cls}">${dir} ${delta != null ? (delta>0?'+':'') + fmt(delta) : ''}</span>
+        </div>
+      </div>`;
+  };
+
+  const fmtPF = (v) => v.toFixed(2);
+  const fmtR  = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + 'R';
+  const fmtWR = (v) => Math.round(v * 100) + '%';
+
+  const long90 = s90 ? `
+    <div class="section-head" style="margin-top:18px;"><h3>vs long baseline</h3><span class="sub">10-day vs 90-day · is the trend sustained?</span></div>
+    <div class="traj-mini">
+      ${card('PF',         s10.pf,           s90.pf,           '90d',  fmtPF, true, 0.10)}
+      ${card('Expectancy', s10.expectancy_r, s90.expectancy_r, '90d',  fmtR,  true, 0.05)}
+      ${card('Win Rate',   s10.win_rate,     s90.win_rate,     '90d',  fmtWR, true, 0.02)}
+    </div>` : '';
+
+  const rangeLine = (s) => `<div class="h" style="font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:6px;">${s.startDate} → ${s.endDate}</div>`;
+  return `
+    <div class="section-head"><h3>Recent state vs short baseline</h3>
+      <span class="sub">10-day vs 30-day · current: ${s10.startDate} → ${s10.endDate} · baseline: ${s30.startDate} → ${s30.endDate}</span>
+    </div>
+    <div class="traj-mini">
+      ${card('PF',         s10.pf,           s30.pf,           '30d',  fmtPF, true, 0.10)}
+      ${card('Expectancy', s10.expectancy_r, s30.expectancy_r, '30d',  fmtR,  true, 0.05)}
+      ${card('Win Rate',   s10.win_rate,     s30.win_rate,     '30d',  fmtWR, true, 0.02)}
+      <div class="card">
+        <div class="name">Max R-Drawdown (full)</div>
+        <div class="pair">
+          <span class="now">${d.metrics.max_r_drawdown?.value != null ? d.metrics.max_r_drawdown.value.toFixed(1) + 'R' : '—'}</span>
+          <span class="prior">long-horizon · not a rolling stat</span>
+        </div>
+      </div>
+    </div>
+    ${long90 ? long90.replace('10-day vs 90-day · is the trend sustained?', `10-day vs 90-day · current: ${s10.startDate} → ${s10.endDate} · baseline: ${s90.startDate} → ${s90.endDate}`) : ''}
+  `;
+}
+
+function lastVal(series) {
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (series[i].value != null) return series[i].value;
+  }
+  return null;
+}
+function lookbackVal(series, n) {
+  if (series.length <= n) return null;
+  for (let i = series.length - 1 - n; i >= 0; i--) {
+    if (series[i].value != null) return series[i].value;
+  }
+  return null;
+}
+
+function attachLongTermCharts(d) {
+  if (!window.LightweightCharts) return;
+
+  const mountMulti = (sel, lines) => {
+    const host = document.querySelector(sel); if (!host) return;
+    const chart = makeChart(host);
+    if (!chart) return;
+    for (const ln of lines) {
+      const s = chart.addLineSeries({ color: ln.color, lineWidth: 2, priceLineVisible: false });
+      s.setData(toLineData(ln.data));
+    }
+    chart.timeScale().fitContent();
+    new ResizeObserver(() => chart.applyOptions({ width: host.clientWidth, height: host.clientHeight })).observe(host);
+  };
+
+  const mountSingle = (sel, series, color, overlayLine) => {
+    const host = document.querySelector(sel); if (!host) return;
+    const chart = makeChart(host);
+    if (!chart) return;
+    const s = chart.addLineSeries({ color, lineWidth: 2, priceLineVisible: false });
+    s.setData(toLineData(series));
+    if (overlayLine) {
+      const ov = chart.addLineSeries({ color: '#f0b34188', lineWidth: 1, lineStyle: 2, priceLineVisible: false });
+      ov.setData(overlayLine);
+    }
+    chart.timeScale().fitContent();
+    new ResizeObserver(() => chart.applyOptions({ width: host.clientWidth, height: host.clientHeight })).observe(host);
+  };
+
+  mountMulti('[data-chart="pf_triple"]', [
+    { color: '#8fd49a', data: d.series.rolling_pf_5  },
+    { color: '#f0b341', data: d.series.rolling_pf_10 },
+    { color: '#7aa8d8', data: d.series.rolling_pf_30 },
+  ]);
+  mountMulti('[data-chart="sharpe_triple"]', [
+    { color: '#8fd49a', data: d.series.rolling_sharpe_5  },
+    { color: '#f0b341', data: d.series.rolling_sharpe_10 },
+    { color: '#7aa8d8', data: d.series.rolling_sharpe_30 },
+  ]);
+
+  const cum = d.series.cumulative_r;
+  if (cum && cum.points?.length) {
+    let overlay = null;
+    if (cum.fit) {
+      overlay = cum.points.map((p, i) => ({ time: p.date, value: cum.fit.slope * i + cum.fit.intercept }));
+    }
+    mountSingle('[data-chart="cum_r"]', cum.points, '#8fd49a', overlay);
+  }
+  mountSingle('[data-chart="edge_30"]', d.series.rolling_edge_concentration_30, '#f08274', null);
+}
+
+// ---------- Main flow ----------
+
+async function evaluate() {
+  const r = parseFloat(document.getElementById('rValue').value);
+  const from = document.getElementById('fromDate').value || '';
+  const to   = document.getElementById('toDate').value || '';
+  if (!Number.isFinite(r) || r <= 0) {
+    document.getElementById('doctor-root').innerHTML = `
+      <div class="empty-state">
+        <div class="ico">⚠</div>
+        <h2>R-value is required</h2>
+        <p>Enter a positive dollar amount you typically risk per trade.</p>
+      </div>`;
+    return;
+  }
+  localStorage.setItem(LS_R, String(r));
+  if (from) localStorage.setItem(LS_FROM, from); else localStorage.removeItem(LS_FROM);
+  if (to)   localStorage.setItem(LS_TO, to);     else localStorage.removeItem(LS_TO);
+
+  const root = document.getElementById('doctor-root');
+  root.innerHTML = `<div class="empty-state"><div class="ico">⌛</div><h2>Analyzing your trades…</h2></div>`;
+
+  const params = new URLSearchParams({ r: String(r) });
+  if (from) params.set('from', from);
+  if (to)   params.set('to', to);
+
+  let data;
+  try {
+    const resp = await fetch(`/api/doctor?${params}`);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || resp.statusText);
+    }
+    data = await resp.json();
+  } catch (e) {
+    root.innerHTML = `<div class="empty-state"><div class="ico">⚠</div><h2>Couldn't load evaluation</h2><p>${e.message}</p></div>`;
+    return;
+  }
+
+  if (data.tier === 'insufficient') {
+    root.innerHTML = `
+      <div class="tier-badge empty">${data.tier_message || 'Insufficient data'}</div>
+      ${renderOutlierBanner(data)}
+      ${renderInfoStats(data)}
+      <div class="empty-state">
+        <div class="ico">⌛</div>
+        <h2>Need at least 10 closed trades</h2>
+        <p>You currently have ${data.counts.trades} closed trade${data.counts.trades===1?'':'s'}. Import more from the Trades page and come back.</p>
+      </div>`;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="tier-badge">${data.tier_message || data.tier}</div>
+    ${renderOutlierBanner(data)}
+    ${renderInfoStats(data)}
+    ${renderStateLadder(data)}
+    ${renderHeadline(data)}
+    ${renderCategoryGrid(data)}
+    ${renderFindings(data)}
+    ${renderTierSections(data)}
+    ${renderWeekdayAndTOD(data)}
+    ${renderTrajectory(data)}
+  `;
+  attachLongTermCharts(data);
+}
+
+// ---------- Init ----------
+function isoDaysAgo(n) {
+  const d = new Date(); d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+function todayIso() { return new Date().toISOString().slice(0, 10); }
+
+function applyPreset(days) {
+  const fromEl = document.getElementById('fromDate');
+  const toEl   = document.getElementById('toDate');
+  if (!days) { fromEl.value = ''; toEl.value = ''; }
+  else { fromEl.value = isoDaysAgo(days - 1); toEl.value = todayIso(); }
+  markActivePreset(days || '');
+}
+function markActivePreset(daysStr) {
+  document.querySelectorAll('.preset-chip').forEach(c => {
+    c.classList.toggle('active', String(c.dataset.days) === String(daysStr));
+  });
+}
+
+(function init() {
+  const r = localStorage.getItem(LS_R);
+  if (r) document.getElementById('rValue').value = r;
+  const from = localStorage.getItem(LS_FROM);
+  const to   = localStorage.getItem(LS_TO);
+  if (from) document.getElementById('fromDate').value = from;
+  if (to)   document.getElementById('toDate').value   = to;
+  // Clean up the v1-preview style key if it's still in localStorage.
+  localStorage.removeItem('tl.doctor.style');
+
+  document.getElementById('evaluate').addEventListener('click', evaluate);
+  document.getElementById('rValue').addEventListener('keydown', (e) => { if (e.key === 'Enter') evaluate(); });
+  document.querySelectorAll('.preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      applyPreset(chip.dataset.days ? parseInt(chip.dataset.days, 10) : null);
+      if (r) evaluate();
+    });
+  });
+  // Clear preset highlight if user types in date inputs manually.
+  ['fromDate','toDate'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => markActivePreset('__custom__'))
+  );
+
+  if (r) evaluate();
+})();
+
+</script>
+</body>
+</html>

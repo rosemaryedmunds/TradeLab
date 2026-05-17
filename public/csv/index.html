@@ -17,39 +17,121 @@ table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:14px}t
 @media (max-width:1050px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.grid{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.status{margin-left:0;width:100%}.mini{grid-template-columns:repeat(2,minmax(0,1fr))}.hint{max-width:100%}}
 @media (max-width:620px){.page{padding:18px;overflow:hidden}.cards{grid-template-columns:1fr;gap:11px}.metric,.panel{padding:16px;border-radius:16px}.val{font-size:clamp(18px,5vw,22px);letter-spacing:-.055em;white-space:normal}.filterbar{border-radius:16px}.pill{font-size:12px;min-height:38px}.calgrid{gap:7px}.day{padding:9px;min-height:78px;border-radius:13px}.day span{font-size:12px}.day em{font-size:10px}.title{font-size:clamp(34px,12vw,48px);letter-spacing:-.045em;overflow-wrap:anywhere}.sub,.hint{overflow-wrap:anywhere}.expand{display:none}.panel h2{padding-right:0}.badge:not(a){display:none}a.badge{padding:8px 12px;font-size:12px;margin-left:6px!important}table{font-size:12px}.hide-mobile{display:none}.hero{grid-template-columns:1fr;gap:14px}}
 
-</style></head><body>
+</style><link rel="stylesheet" href="/assets/mobile.css?v=carousel7">
+</head><body>
 <div class="page">
-  <div class="hero"><div><div class="eyebrow">IBKR timestamped flat-to-flat round trips</div><div class="title">Trade Performance Lab</div><div class="sub">Latest timestamped period 2026-01-06 - 2026-05-11 Central • all 2026 timestamped flat-to-flat trades; May 11 refreshed from Telegram/IBKR fill screenshot at 09:30 CT</div></div><div class="badge">Latest fill 09:23 CT</div> <a class="badge" href="/" style="margin-left:8px;color:#ffd166;text-decoration:none;">Overall</a> <a class="badge" href="/today" style="margin-left:6px;color:#ffd166;text-decoration:none;">Daily</a> <a class="badge" href="/trades" style="margin-left:6px;color:#ffd166;text-decoration:none;">Manage</a></div>
+  <header class="hero">
+    <div><h1 class="title" style="margin:0">Trade Performance Lab</h1></div>
+    <nav class="hero-nav" aria-label="Sections">
+      <a href="/" class="hero-nav-link">Overall</a>
+      <a href="/today" class="hero-nav-link">Daily</a>
+      <a href="/trades" class="hero-nav-link">Manage</a>
+      <a href="/doctor" class="hero-nav-link">Doctor</a>
+    </nav>
+  </header>
+  <div class="futures-banner" id="futuresBanner" hidden></div>
   <div class="filterbar">
-    <button class="pill action" id="clearDays">Clear day filter</button>
-    <button class="pill action" id="clearSelection">Clear scatter filter</button>
-    <button class="pill action" id="resetAll">Reset all</button>
-    <label class="rangeCtl">From <input id="rangeStart" type="datetime-local"></label>
-    <label class="rangeCtl">To <input id="rangeEnd" type="datetime-local"></label>
-    <button class="pill action" id="applyRange">Apply time range</button>
-    <button class="pill action" id="clearRange">Clear range</button>
-    <span class="pill" id="rangePill">Range: all</span>
-    <span class="pill" id="dayPill">Days: all</span>
-    <span class="pill" id="scatterPill">Scatter: none</span>
+    <button class="pill action dr-trigger" id="dateRangeBtn" type="button" aria-haspopup="dialog" aria-expanded="false">
+      <span class="dr-trigger-icon" aria-hidden="true">📅</span>
+      <span class="dr-trigger-label" id="dateRangeLabel">All time</span>
+      <span class="dr-trigger-chev" aria-hidden="true">▾</span>
+    </button>
+    <button class="pill action" id="resetAll" type="button">Reset</button>
     <span class="status" id="filterStatus"></span>
+  </div>
+  <div class="dr-popover" id="dateRangePopover" hidden>
+    <div class="dr-backdrop" data-dr-close></div>
+    <div class="dr-panel" role="dialog" aria-modal="true" aria-label="Date range">
+      <div>
+        <div class="dr-section-label">Quick</div>
+        <div class="dr-shortcuts">
+          <button class="dr-shortcut" data-preset="today" type="button">Today</button>
+          <button class="dr-shortcut" data-preset="last7" type="button">Last 7 days</button>
+          <button class="dr-shortcut" data-preset="thisweek" type="button">This week</button>
+          <button class="dr-shortcut" data-preset="thismonth" type="button">This month</button>
+          <button class="dr-shortcut" data-preset="last30" type="button">Last 30 days</button>
+          <button class="dr-shortcut" data-preset="all" type="button">All time</button>
+        </div>
+      </div>
+      <div class="dr-custom">
+        <div class="dr-section-label">Custom range</div>
+        <div class="dr-custom-inputs">
+          <label>From<input type="date" id="dr-from"></label>
+          <label>To<input type="date" id="dr-to"></label>
+        </div>
+      </div>
+      <div class="dr-actions">
+        <button class="dr-cancel" type="button" data-dr-close>Cancel</button>
+        <button class="dr-apply" type="button">Apply</button>
+      </div>
+    </div>
   </div>
   <div class="cards" id="cards"></div>
   <div class="grid" id="grid">
-    <section class="panel" id="calendarPanel"><button class="expand">Expand</button><h2>Calendar heatmap (net $)</h2><div class="hint">Level I filter: click one or more day cells. All charts and statistics recalculate from the selected days. Click toggles selection on either calendar.</div><label style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:.04em"><input type="checkbox" id="hideCalCounts" style="accent-color:#ffd166;cursor:pointer"> Hide trade counts</label><div id="calendar"></div></section>
-    <section class="panel" id="pctCalendarPanel"><button class="expand">Expand</button><h2>Calendar heatmap (return %)</h2><div class="hint">Return on deployed capital per day = daily net PnL / daily entry gross cost. Same day-click toggle as the dollar calendar.</div><div id="pctCalendar"></div></section>
-    <section class="panel" id="curvePanel"><button class="expand">Expand</button><h2>Cumulative PnL curve</h2><div class="hint">Running realized PnL. Multi-day filtered sets bucket into RTH hours (overnight gaps removed). Single-day filtered sets flex to actual first-entry → last-exit window with intraday ticks.</div><div id="curve"></div></section>
-    <section class="panel" id="payoffPanel"><button class="expand">Expand</button><h2>Payoff waterfall</h2><div class="hint">Average gross win contribution - average gross loss contribution - average fee per round trip = average net trade.</div><div id="payoff"></div><div class="small">Fee is broker drag averaged across round-trip trades. Win/loss bars are frequency-weighted gross PnL contributions so the waterfall ties exactly to Avg Trade.</div></section>
-    <section class="panel" id="scatterPanel"><button class="expand">Expand</button><h2>Duration vs return</h2><div class="hint">Drag the right-side amber handle to set your max-loss threshold. Box-select dots to include/exclude, or model selected losers as if they stopped at the line. Y-axis auto-scales to the currently filtered/scenario-adjusted set.</div><div class="scatter-wrap"><div id="scatter"></div><div class="selectionBox" id="selectionBox"></div></div><div class="selectActions"><button class="pill action" id="includeSelection">Include selected</button><button class="pill action" id="excludeSelection">Exclude selected</button><button class="pill action" id="moveBelowLine">Move below line to line</button><button class="pill action" id="clearScenario">Clear scenario</button><span class="small" id="selectionCount">No dots selected</span></div><div class="scenarioBox" id="scenarioPanel">Drag the amber line to test max-loss rules. Then move selected dots below the line to that level.</div></section>
-    <section class="panel" id="distPanel"><button class="expand">Expand</button><h2>Return distribution</h2><div class="hint">Trade-level return percent for the current filtered set.</div><div id="hist"></div></section>
-    <section class="panel" id="sessionPanel"><button class="expand">Expand</button><h2>Session profit factor</h2><div class="hint">Entry-time buckets in Central Time (RTH 8:30-15:00 CST). PF = sum winning net PnL / abs(sum losing net PnL).</div><div id="sessions"></div></section>
-    <section class="panel" id="hourPanel"><button class="expand">Expand</button><h2>Entry-hour heat strip</h2><div class="hint">Hour of first fill in Central Time. Green = positive net PnL, red = negative net PnL.</div><div class="legend"><span class="sw g"></span>positive net PnL <span class="sw r"></span>negative net PnL</div><div id="hours"></div></section>
-    <section class="panel wide" id="streakPanel"><button class="expand">Expand</button><h2>Trade streak strip</h2><div class="hint">Each tick is one flat-to-flat round trip in exit order. Dimmed ticks are currently filtered out.</div><div id="streak"></div></section>
+    <section class="panel" id="calendarPanel" data-card-id="calendarPanel"><button class="expand">Expand</button><h2>Calendar heatmap (net $)</h2><div class="hint">Level I filter: click one or more day cells. All charts and statistics recalculate from the selected days. Click toggles selection on either calendar.</div><label style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:.04em"><input type="checkbox" id="hideCalCounts" style="accent-color:#ffd166;cursor:pointer"> Hide trade counts</label><div id="calendar"></div></section>
+    <section class="panel" id="pctCalendarPanel" data-card-id="pctCalendarPanel"><button class="expand">Expand</button><h2>Calendar heatmap (return %)</h2><div class="hint">Return on deployed capital per day = daily net PnL / daily entry gross cost. Same day-click toggle as the dollar calendar.</div><div id="pctCalendar"></div></section>
+    <section class="panel" id="curvePanel" data-card-id="curvePanel"><button class="expand">Expand</button><h2>Cumulative PnL curve</h2><div class="hint">Running realized PnL. Multi-day filtered sets bucket into RTH hours (overnight gaps removed). Single-day filtered sets flex to actual first-entry → last-exit window with intraday ticks.</div><div id="curve"></div></section>
+    <section class="panel" id="payoffPanel" data-card-id="payoffPanel"><button class="expand">Expand</button><h2>Payoff waterfall</h2><div class="hint">Average gross win contribution - average gross loss contribution - average fee per round trip = average net trade.</div><div id="payoff"></div><div class="small">Fee is broker drag averaged across round-trip trades. Win/loss bars are frequency-weighted gross PnL contributions so the waterfall ties exactly to Avg Trade.</div></section>
+    <section class="panel" id="scatterPanel" data-card-id="scatterPanel"><button class="expand">Expand</button><h2>Duration vs return</h2><button class="xTab" id="bubbleToggle" type="button" title="Size dots by P&amp;L $" style="margin-left:8px; border:1px solid var(--line); padding:6px 12px;">Bubbles</button><div class="hint">Drag the right-side amber handle to set your max-loss threshold. Box-select dots to include/exclude, or model selected losers as if they stopped at the line. Y-axis auto-scales to the currently filtered/scenario-adjusted set.</div><div class="scatter-wrap"><div id="scatter"></div><div class="selectionBox" id="selectionBox"></div></div><div class="selectActions"><button class="pill action" id="includeSelection">Include selected</button><button class="pill action" id="excludeSelection">Exclude selected</button><button class="pill action" id="moveBelowLine">Move below line to line</button><button class="pill action" id="clearScenario">Clear scenario</button><span class="small" id="selectionCount">No dots selected</span></div><div class="scenarioBox" id="scenarioPanel">Drag the amber line to test max-loss rules. Then move selected dots below the line to that level.</div></section>
+    <section class="panel" id="distPanel" data-card-id="distPanel"><button class="expand">Expand</button><h2>Return distribution</h2><div class="hint">Trade-level return percent for the current filtered set.</div><div id="hist"></div></section>
+    <section class="panel" id="sessionPanel" data-card-id="sessionPanel"><button class="expand">Expand</button><h2>Session profit factor</h2><div class="hint">Entry-time buckets in Central Time (RTH 8:30-15:00 CST). PF = sum winning net PnL / abs(sum losing net PnL).</div><div id="sessions"></div></section>
+    <section class="panel" id="hourPanel" data-card-id="hourPanel"><button class="expand">Expand</button><h2>Entry-hour heat strip</h2><div class="hint">Hour of first fill in Central Time. Green = positive net PnL, red = negative net PnL.</div><div class="legend"><span class="sw g"></span>positive net PnL <span class="sw r"></span>negative net PnL</div><div id="hours"></div></section>
+    <section class="panel wide" id="streakPanel" data-card-id="streakPanel"><button class="expand">Expand</button><h2>Trade streak strip</h2><div class="hint">Each tick is one flat-to-flat round trip in exit order. Dimmed ticks are currently filtered out.</div><div id="streak"></div></section>
   </div>
   <div class="modal" id="modal"><div class="modalCard"><button class="close" id="closeModal">Close</button><div id="modalContent"></div></div></div>
   <div class="foot">Definitions: Profit Factor = sum winning net PnL / abs(sum losing net PnL). Risk/Reward = average winning net PnL / abs(average losing net PnL). Period PnL % = sum net PnL / sum entry gross cost / capital deployed. One contract per row is a fill, not a trade; the dashboard aggregates fills into round trips via FIFO matching.</div>
 <script id="trade-data" type="application/json">[]</script>
 <script>
 const trades = JSON.parse(document.getElementById('trade-data').textContent);
+// ----- Futures base-value config (mirrored from / dashboard, see comments there) -----
+let _futuresBase = {};
+try { _futuresBase = JSON.parse(localStorage.getItem('tl_fut_base') || '{}'); } catch(e) {}
+const _futuresRoots = [...new Set(trades.filter(t => t.is_futures).map(t => t.root))].sort();
+function baseValueFor(root){
+  const t = trades.find(x => x.root === root);
+  const def = t ? t.base_value_default : 500;
+  return _futuresBase[root] != null ? _futuresBase[root] : def;
+}
+function applyFuturesBase(){
+  for (const t of trades) {
+    if (!t.is_futures) continue;
+    const cost = baseValueFor(t.root) * t.quantity;
+    t.entry_gross_cost = cost;
+    t.exit_gross_proceeds = cost;
+    t.pnl_pct = (t.net_pnl != null && cost > 0) ? (t.net_pnl / cost) * 100 : null;
+  }
+}
+function renderFuturesBanner(){
+  const el = document.getElementById('futuresBanner'); if (!el) return;
+  if (!_futuresRoots.length) { el.hidden = true; el.innerHTML = ''; return; }
+  const editing = el.dataset.editing === '1';
+  if (editing) {
+    el.innerHTML = `<div class="fb-title">Futures base value per contract (denominator for %)</div>` +
+      `<div class="fb-rows">` + _futuresRoots.map(r => {
+        const cur = baseValueFor(r);
+        return `<label class="fb-row"><span class="fb-root">${r}</span>$<input type="number" min="1" step="1" value="${cur}" data-root="${r}" class="fb-in"></label>`;
+      }).join('') + `</div>` +
+      `<div class="fb-actions"><button type="button" class="fb-save">Save</button><button type="button" class="fb-cancel">Cancel</button></div>`;
+    el.querySelector('.fb-save').onclick = () => {
+      el.querySelectorAll('.fb-in').forEach(i => { const v = parseFloat(i.value); if (v > 0) _futuresBase[i.dataset.root] = v; });
+      try { localStorage.setItem('tl_fut_base', JSON.stringify(_futuresBase)); } catch(e) {}
+      el.dataset.editing = '';
+      applyFuturesBase(); renderFuturesBanner(); if (typeof render === 'function') render();
+    };
+    el.querySelector('.fb-cancel').onclick = () => { el.dataset.editing = ''; renderFuturesBanner(); };
+  } else {
+    const parts = _futuresRoots.map(r => {
+      const isOverride = _futuresBase[r] != null;
+      return `<b>${r}</b> $${baseValueFor(r)}/contract${isOverride ? '' : ' <em style="font-style:normal;opacity:.65">(default)</em>'}`;
+    });
+    el.innerHTML = `<span class="fb-warn">⚠ Futures</span><span class="fb-info">${parts.join(' &nbsp;•&nbsp; ')} used as % return denominator</span><button type="button" class="fb-edit">Edit</button>`;
+    el.querySelector('.fb-edit').onclick = () => { el.dataset.editing = '1'; renderFuturesBanner(); };
+  }
+  el.hidden = false;
+}
+applyFuturesBase();
+if (document.getElementById('futuresBanner')) renderFuturesBanner();
+else document.addEventListener('DOMContentLoaded', renderFuturesBanner, { once: true });
 const allDates = [...new Set(trades.map(t=>t.exit_date))].sort();
 let selectedDays = new Set();
 let scatterMode = 'none';
@@ -60,11 +142,12 @@ let hideCalCounts = (typeof localStorage!=='undefined' && localStorage.getItem('
 function _wireHideCounts(){const el=document.getElementById('hideCalCounts'); if(!el||el.dataset.wired)return; el.dataset.wired='1'; el.checked=hideCalCounts; el.addEventListener('change',()=>{hideCalCounts=el.checked; try{localStorage.setItem('tl_hideCalCounts',hideCalCounts?'1':'0');}catch{} render();});} 
 let scenarioActive = false;
 let scenarioIds = new Set();
-let rangeStart = null;
+let rangeStart = null; let rangePreset = null;
 let rangeEnd = null;
+if (typeof window !== 'undefined' && window.tlBubbles === undefined) window.tlBubbles = true;
 const $ = id => document.getElementById(id);
 const money = (x,d=0) => (x>=0?'+$':'-$') + Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
-const pct = x => (x>=0?'+':'') + x.toFixed(1) + '%';
+const pct = x => { if(!Number.isFinite(x)) return '0.0%'; const sign=x>=0?'+':''; const ax=Math.abs(x); if(ax>0&&ax<1) return sign+x.toFixed(2)+'%'; return sign+x.toFixed(1)+'%'; };
 function cls(x){return x>=0?'good':'bad'}
 // Raw entry_dt / exit_dt strings come from IBKR exports in Eastern Time. We
 // convert to Central for display and RTH bucketing (8:30-15:00 CT).
@@ -144,11 +227,13 @@ function fmtCurveTickPoint(p, compact=false){
   return `${new Date(p.labelMs).toLocaleDateString(undefined,{month:'short',day:'numeric'})} ${suffix} CST`;
 }
 function renderCurve(items){
-  const w=760,h=350,left=62,right=724,top=24,bottom=282;
+  const isMobile = (typeof window!=='undefined') && window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
+  const w=760, h=isMobile?720:350, left=62, right=724, top=24, bottom=h-68;
+  const labelY = bottom + 25, subtitleY = h - 17, midY = Math.round(h / 2);
   const distinctDays=new Set(items.map(t=>t.exit_date));
   const intradayMode = distinctDays.size===1 && items.length>=1;
   const pts = intradayMode ? intradayCurvePoints(items) : compactHourlyCurvePoints(items);
-  if(!pts.length){$('curve').innerHTML=svgWrap(w,h,'<text x="380" y="170" fill="#9d9a91" text-anchor="middle" font-size="14" font-weight="750">No trades in selected time range</text>'); return;}
+  if(!pts.length){$('curve').innerHTML=svgWrap(w,h,`<text x="${w/2}" y="${midY}" fill="#9d9a91" text-anchor="middle" font-size="14" font-weight="750">No trades in selected time range</text>`); return;}
   const xMin=0, xMax=Math.max(1,pts.length-1), span=xMax-xMin;
   const ys=[0,...pts.map(p=>p.y)], ymin=Math.min(0,...ys), ymax=Math.max(0,...ys), pad=(ymax-ymin)*.14||100, lo=ymin-pad, hi=ymax+pad;
   const X=x=>left+(x-xMin)/span*(right-left), Y=y=>top+(hi-y)/(hi-lo)*(bottom-top);
@@ -156,19 +241,19 @@ function renderCurve(items){
   let body=`<line x1="${left}" y1="${zero}" x2="${right}" y2="${zero}" stroke="#3b414d"/><path d="${path}" fill="none" stroke="#30d158" stroke-width="3.5" stroke-linecap="round"/>`;
   if(intradayMode){
     const tickCount=Math.min(8,Math.max(2,pts.length));
-    for(let i=0;i<tickCount;i++){const idx=Math.round(i*(pts.length-1)/(tickCount-1||1)), p=pts[idx], x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="307" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;}
+    for(let i=0;i<tickCount;i++){const idx=Math.round(i*(pts.length-1)/(tickCount-1||1)), p=pts[idx], x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="${labelY}" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;}
   } else {
     const days=[...new Set(pts.map(p=>p.day))];
     if(days.length<=14){
-      days.forEach(day=>{const p=pts.find(x=>x.day===day && x.hour===8) || pts.find(x=>x.day===day); const x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="307" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;});
+      days.forEach(day=>{const p=pts.find(x=>x.day===day && x.hour===8) || pts.find(x=>x.day===day); const x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="${labelY}" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;});
     } else {
-      for(let i=0;i<6;i++){const idx=Math.round(i*(pts.length-1)/5), p=pts[idx], x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="307" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;}
+      for(let i=0;i<6;i++){const idx=Math.round(i*(pts.length-1)/5), p=pts[idx], x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="${labelY}" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;}
     }
   }
   [ymin,0,ymax].forEach(y=>{const yy=Y(y); body+=`<line x1="${left}" y1="${yy}" x2="${right}" y2="${yy}" stroke="#252a33"/><text x="${left-8}" y="${yy+4}" fill="#9d9a91" font-size="11" text-anchor="end">${money(y)}</text>`;});
   const activeBuckets=pts.filter(p=>p.count>0).length;
   const subtitle = intradayMode ? `Single-day intraday 10-min exit buckets CST • flexed to first entry → last exit • ${activeBuckets} active bucket(s), ${items.length} trade(s)` : `RTH hourly exit buckets CST only • overnight gaps removed • ${activeBuckets} active hour(s), ${items.length} trade(s)`;
-  body+=`<text x="${w/2}" y="333" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">${subtitle}</text><text x="18" y="166" fill="#9d9a91" font-size="12" font-weight="650" transform="rotate(-90 18 166)" text-anchor="middle">Cumulative PnL in selected range</text><g id="curveHover" class="curveTip" style="display:none"></g>`;
+  body+=`<text x="${w/2}" y="${subtitleY}" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">${subtitle}</text><text x="18" y="${midY}" fill="#9d9a91" font-size="12" font-weight="650" transform="rotate(-90 18 ${midY})" text-anchor="middle">Cumulative PnL in selected range</text><g id="curveHover" class="curveTip" style="display:none"></g>`;
   $('curve').innerHTML=svgWrap(w,h,body);
   const svg=$('curve').querySelector('svg'), hover=$('curveHover');
   if(hover){
@@ -184,18 +269,55 @@ function weekdayInfo(dateStr){
   const label = dt.toLocaleDateString(undefined,{month:'short',day:'numeric'});
   return {col,name,label};
 }
+// Calendar timeframe: 'days30' (default, last 30 trading days), 'weeks'
+// (aggregate by ISO week), or 'months' (aggregate by year-month). Persisted
+// in localStorage so the card doesn't reset between visits.
+let calendarTimeframe = (typeof localStorage!=='undefined' && localStorage.getItem('tl_calTimeframe')) || 'recent';
+function setCalendarTimeframe(v){ calendarTimeframe = v; try{localStorage.setItem('tl_calTimeframe', v);}catch(e){} render(); }
+function isoWeekKey(dateStr){
+  const dt = new Date(dateStr + 'T12:00:00Z');
+  const day = (dt.getUTCDay() + 6) % 7;
+  const thu = new Date(dt); thu.setUTCDate(dt.getUTCDate() - day + 3);
+  const isoYear = thu.getUTCFullYear();
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+  const jan4Day = (jan4.getUTCDay() + 6) % 7;
+  const isoWeek = 1 + Math.round(((thu - jan4) / 86400000 - 3 + jan4Day) / 7);
+  const mon = new Date(dt); mon.setUTCDate(dt.getUTCDate() - day);
+  return { key: `${isoYear}-W${String(isoWeek).padStart(2,'0')}`, start: mon.toISOString().slice(0,10) };
+}
+function groupAllDatesByPeriod(period){
+  const groups = new Map();
+  for (const d of allDates) {
+    let key, start;
+    if (period === 'weeks') { const w = isoWeekKey(d); key = w.key; start = w.start; }
+    else { key = d.slice(0,7); start = key + '-01'; }
+    if (!groups.has(key)) groups.set(key, { key, start, dates: [] });
+    groups.get(key).dates.push(d);
+  }
+  return [...groups.values()].sort((a,b)=>a.start.localeCompare(b.start));
+}
+function periodLabel(period, group){
+  const d = new Date(group.start + 'T12:00:00');
+  if (period === 'weeks') return 'Wk ' + d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  return d.toLocaleDateString(undefined,{month:'short',year:'2-digit'});
+}
 function buildCalendarHtml(items, mode){
+  if (calendarTimeframe === 'recent' || calendarTimeframe === 'days30') return buildDaysCalendarHtml(items, mode, 25);
+  return buildPeriodCalendarHtml(items, mode, calendarTimeframe);
+}
+function buildDaysCalendarHtml(items, mode, limit){
   const by={};
   trades.forEach(t=>{(by[t.exit_date] ||= []).push(t)});
+  const dates = (limit && limit < allDates.length) ? allDates.slice(-limit) : allDates;
   const dayMetric=d=>{
     const ds=summarize(items.filter(t=>t.exit_date===d));
     return mode==='pct' ? ds.pct : ds.net;
   };
-  const vals=allDates.map(dayMetric);
+  const vals=dates.map(dayMetric);
   const mx=Math.max(mode==='pct'?0.5:1,...vals.map(Math.abs));
   const dows=['Mon','Tue','Wed','Thu','Fri'];
   let html='<div class="calgrid">'+dows.map(d=>`<div class="dow">${d}</div>`).join('');
-  allDates.forEach(d=>{
+  dates.forEach(d=>{
     const {col,name,label}=weekdayInfo(d);
     const dayItems=items.filter(t=>t.exit_date===d), base=by[d]||[], s=summarize(dayItems), sb=summarize(base);
     const v = mode==='pct' ? s.pct : s.net;
@@ -208,21 +330,54 @@ function buildCalendarHtml(items, mode){
   html+='</div>';
   return html;
 }
+function buildPeriodCalendarHtml(items, mode, period){
+  const groups = groupAllDatesByPeriod(period);
+  const summaries = groups.map(g => summarize(items.filter(t => g.dates.indexOf(t.exit_date) !== -1)));
+  const vals = summaries.map(s => mode==='pct' ? s.pct : s.net);
+  const mx = Math.max(mode==='pct'?0.5:1, ...vals.map(Math.abs));
+  const cols = period === 'weeks' ? 6 : 4;
+  let html = `<div class="calgrid" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">`;
+  groups.forEach((g,i)=>{
+    const s = summaries[i];
+    const v = mode==='pct' ? s.pct : s.net;
+    const a = s.n ? .18 + .70 * Math.min(1, Math.abs(v)/mx) : .10;
+    const bg = s.n ? (v>=0?`rgba(48,209,88,${a})`:`rgba(255,69,58,${a})`) : 'rgba(19,21,26,.62)';
+    const big = !s.n ? '--' : (mode==='pct' ? pct(s.pct) : money(s.net));
+    const sub = (typeof hideCalCounts!=='undefined' && hideCalCounts) ? '' : `${s.n} trades • ${g.dates.length}d`;
+    const allSelected = g.dates.length>0 && g.dates.every(d=>selectedDays.has(d));
+    const lbl = periodLabel(period, g);
+    html += `<button class="day ${allSelected?'selected':''}" data-period="${g.key}" data-dates="${g.dates.join(',')}" style="background:${bg};color:#f4f1ea" title="${lbl}"><b>${lbl}</b><span>${big}</span>${sub?`<em>${sub}</em>`:''}</button>`;
+  });
+  html += '</div>';
+  return html;
+}
 function wireDayClicks(rootId){
   document.querySelectorAll('#'+rootId+' .day[data-date]').forEach(el=>el.onclick=()=>{const d=el.dataset.date; selectedDays.has(d)?selectedDays.delete(d):selectedDays.add(d); render();});
+  document.querySelectorAll('#'+rootId+' .day[data-period]').forEach(el=>el.onclick=()=>{const dates=(el.dataset.dates||'').split(',').filter(Boolean); const all=dates.every(d=>selectedDays.has(d)); dates.forEach(d=>all?selectedDays.delete(d):selectedDays.add(d)); render();});
+}
+function buildCalendarToggleHtml(){
+  const opts = [['recent','Recent'],['weeks','Weeks'],['months','Months']];
+  return `<div class="xToggle tl-cal-tf" role="tablist" style="margin-bottom:10px">` +
+    opts.map(([k,lbl])=>`<button class="xTab ${calendarTimeframe===k?'active':''}" data-tf="${k}" type="button" role="tab">${lbl}</button>`).join('') +
+    `</div>`;
+}
+function wireCalendarToggle(rootId){
+  document.querySelectorAll('#'+rootId+' .tl-cal-tf [data-tf]').forEach(b=>b.addEventListener('click',()=>setCalendarTimeframe(b.dataset.tf)));
 }
 function renderCalendar(items){
-  $('calendar').innerHTML=buildCalendarHtml(items,'net');
+  $('calendar').innerHTML = buildCalendarToggleHtml() + buildCalendarHtml(items,'net');
   wireDayClicks('calendar');
+  wireCalendarToggle('calendar');
   _wireHideCounts();
 }
 function renderPctCalendar(items){
   if(!$('pctCalendar')) return;
-  $('pctCalendar').innerHTML=buildCalendarHtml(items,'pct');
+  $('pctCalendar').innerHTML = buildCalendarToggleHtml() + buildCalendarHtml(items,'pct');
   wireDayClicks('pctCalendar');
+  wireCalendarToggle('pctCalendar');
 }
-function renderPayoff(items){const s=summarize(items), n=s.n||1; const grossWin=items.filter(t=>t.gross_pnl>0).reduce((a,t)=>a+t.gross_pnl,0)/n; const grossLoss=items.filter(t=>t.gross_pnl<0).reduce((a,t)=>a+t.gross_pnl,0)/n; const fee=s.avgFee; const avg=s.avg; const steps=[['Win contrib.',grossWin],['Loss contrib.',grossLoss],['Avg fees',fee],['Avg trade',avg]]; const w=760,h=320,left=54,bw=120,gap=54; const vals=[0,grossWin,grossWin+grossLoss,grossWin+grossLoss+fee,avg]; const lo=Math.min(0,...vals), hi=Math.max(0,...vals), pad=(hi-lo)*.22||1; const Y=y=>42+(hi+pad-y)/(hi-lo+pad*2)*(h-96); let prev=0, body=`<line x1="36" y1="${Y(0)}" x2="724" y2="${Y(0)}" stroke="#3b414d"/>`; steps.forEach((st,i)=>{const [lab,v]=st, isTotal=i===3, start=isTotal?0:prev, end=isTotal?v:prev+v, y=Math.min(Y(start),Y(end)), ht=Math.max(3,Math.abs(Y(start)-Y(end))), x=left+i*(bw+gap), col=v>=0?'#30d158':'#ff453a'; body+=`<rect x="${x}" y="${y}" width="${bw}" height="${ht}" rx="8" fill="${col}" opacity=".9"/><text x="${x+bw/2}" y="${h-36}" text-anchor="middle" fill="#d8d2c5" font-size="13" font-weight="700">${lab}</text><text x="${x+bw/2}" y="${v>=0?y-8:y+ht+18}" text-anchor="middle" fill="${col}" font-size="13" font-weight="800">${money(v,2)}</text>`; if(!isTotal){prev=end; const nx=left+(i+1)*(bw+gap); body+=`<line x1="${x+bw}" y1="${Y(end)}" x2="${nx}" y2="${Y(end)}" stroke="#66a3ff" stroke-dasharray="4 4" opacity=".5"/>`;}}); $('payoff').innerHTML=svgWrap(w,h,body);}
-function renderHist(items){const vals=items.map(t=>t.pnl_pct).filter(Number.isFinite), w=760,h=390,bins=18,left=54,right=724,top=24,bottom=318; if(!vals.length){$('hist').innerHTML=svgWrap(w,h,'<text x="380" y="190" fill="#9d9a91" text-anchor="middle" font-size="14" font-weight="750">No trades in selected time range</text>');return} const mn=Math.min(...vals), mx=Math.max(...vals), span=mx-mn||1, counts=Array(bins).fill(0); vals.forEach(v=>counts[Math.min(bins-1,Math.floor((v-mn)/span*bins))]++); const m=Math.max(...counts,1), bw=(right-left)/bins; let body=`<text x="${w/2}" y="374" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">Trade return % buckets • ${items.length} round trips</text>`; counts.forEach((c,i)=>{const mid=mn+(i+.5)*span/bins, x=left+i*bw, bh=(bottom-top)*c/m, y=bottom-bh, col=mid>=0?'#30d158':'#ff453a'; body+=`<rect x="${x}" y="${y}" width="${Math.max(2,bw-4)}" height="${Math.max(1,bh)}" rx="5" fill="${col}" opacity=".88"/><text x="${x+bw/2}" y="${y-6}" fill="${col}" font-size="10.5" font-weight="800" text-anchor="middle">${c||''}</text>`; if(i%2===0 || i===bins-1) body+=`<text x="${x+bw/2}" y="342" fill="#9d9a91" font-size="10" text-anchor="middle">${mid.toFixed(0)}%</text>`;}); const zx=left+(0-mn)/span*(right-left); if(zx>=left&&zx<=right) body+=`<line x1="${zx}" y1="${top}" x2="${zx}" y2="${bottom}" stroke="#f4f1ea" opacity=".35"/><text x="${zx+4}" y="${top+12}" fill="#d8d2c5" font-size="10">0%</text>`; $('hist').innerHTML=svgWrap(w,h,body);}
+function renderPayoff(items){const s=summarize(items), n=s.n||1; const grossWin=items.filter(t=>t.gross_pnl>0).reduce((a,t)=>a+t.gross_pnl,0)/n; const grossLoss=items.filter(t=>t.gross_pnl<0).reduce((a,t)=>a+t.gross_pnl,0)/n; const fee=s.avgFee; const avg=s.avg; const steps=[['Win contrib.',grossWin],['Loss contrib.',grossLoss],['Avg fees',fee],['Avg trade',avg]]; const isMobile=(typeof window!=='undefined')&&window.matchMedia&&window.matchMedia('(max-width: 720px)').matches; const w=760,h=isMobile?640:320,left=54,bw=120,gap=54; const vals=[0,grossWin,grossWin+grossLoss,grossWin+grossLoss+fee,avg]; const lo=Math.min(0,...vals), hi=Math.max(0,...vals), pad=(hi-lo)*.22||1; const Y=y=>42+(hi+pad-y)/(hi-lo+pad*2)*(h-96); let prev=0, body=`<line x1="36" y1="${Y(0)}" x2="724" y2="${Y(0)}" stroke="#3b414d"/>`; steps.forEach((st,i)=>{const [lab,v]=st, isTotal=i===3, start=isTotal?0:prev, end=isTotal?v:prev+v, y=Math.min(Y(start),Y(end)), ht=Math.max(3,Math.abs(Y(start)-Y(end))), x=left+i*(bw+gap), col=v>=0?'#30d158':'#ff453a'; body+=`<rect x="${x}" y="${y}" width="${bw}" height="${ht}" rx="8" fill="${col}" opacity=".9"/><text x="${x+bw/2}" y="${h-36}" text-anchor="middle" fill="#d8d2c5" font-size="13" font-weight="700">${lab}</text><text x="${x+bw/2}" y="${v>=0?y-8:y+ht+18}" text-anchor="middle" fill="${col}" font-size="13" font-weight="800">${money(v,2)}</text>`; if(!isTotal){prev=end; const nx=left+(i+1)*(bw+gap); body+=`<line x1="${x+bw}" y1="${Y(end)}" x2="${nx}" y2="${Y(end)}" stroke="#66a3ff" stroke-dasharray="4 4" opacity=".5"/>`;}}); $('payoff').innerHTML=svgWrap(w,h,body);}
+function renderHist(items){const isMobile=(typeof window!=='undefined')&&window.matchMedia&&window.matchMedia('(max-width: 720px)').matches; const vals=items.map(t=>t.pnl_pct).filter(Number.isFinite), w=760,h=isMobile?720:390,bins=18,left=54,right=724,top=24,bottom=h-72; const tickLblY=bottom+24, subtitleY=h-16, midY=Math.round(h/2); if(!vals.length){$('hist').innerHTML=svgWrap(w,h,`<text x="${w/2}" y="${midY}" fill="#9d9a91" text-anchor="middle" font-size="14" font-weight="750">No trades in selected time range</text>`);return} const mn=Math.min(...vals), mx=Math.max(...vals), span=mx-mn||1, counts=Array(bins).fill(0); vals.forEach(v=>counts[Math.min(bins-1,Math.floor((v-mn)/span*bins))]++); const m=Math.max(...counts,1), bw=(right-left)/bins; let body=`<text x="${w/2}" y="${subtitleY}" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">Trade return % buckets • ${items.length} round trips</text>`; counts.forEach((c,i)=>{const mid=mn+(i+.5)*span/bins, x=left+i*bw, bh=(bottom-top)*c/m, y=bottom-bh, col=mid>=0?'#30d158':'#ff453a'; body+=`<rect x="${x}" y="${y}" width="${Math.max(2,bw-4)}" height="${Math.max(1,bh)}" rx="5" fill="${col}" opacity=".88"/><text x="${x+bw/2}" y="${y-6}" fill="${col}" font-size="10.5" font-weight="800" text-anchor="middle">${c||''}</text>`; if(i%2===0 || i===bins-1) body+=`<text x="${x+bw/2}" y="${tickLblY}" fill="#9d9a91" font-size="10" text-anchor="middle">${mid.toFixed(0)}%</text>`;}); const zx=left+(0-mn)/span*(right-left); if(zx>=left&&zx<=right) body+=`<line x1="${zx}" y1="${top}" x2="${zx}" y2="${bottom}" stroke="#f4f1ea" opacity=".35"/><text x="${zx+4}" y="${top+12}" fill="#d8d2c5" font-size="10">0%</text>`; $('hist').innerHTML=svgWrap(w,h,body);}
 function renderTables(items){const sessions=['Morning','Midday','Power hour','End of day','Outside RTH']; let th='<table><thead><tr><th>Session</th><th>Trades</th><th>Win rate</th><th>PF</th><th>PnL %</th></tr></thead><tbody>'; sessions.forEach(k=>{const s=summarize(items.filter(t=>sessionBucket(t.entry_dt)===k)); th+=`<tr><td>${k}</td><td>${s.n}</td><td>${s.wins}/${s.n} = ${s.wr.toFixed(1)}%</td><td class="${s.pf>=1?'good':'bad'}">${s.pf==null?'n/a':s.pf.toFixed(2)}</td><td class="${cls(s.pct)}">${pct(s.pct)}</td></tr>`;}); $('sessions').innerHTML=th+'</tbody></table>'; const hours=[7,8,9,10,11,12,13,14,15]; $('hours').innerHTML='<div class="mini">'+hours.map(h=>{const s=summarize(items.filter(t=>cstHM(t.entry_dt).h===h)); return `<div class="hour" style="background:${s.net>=0?'rgba(48,209,88,.11)':'rgba(255,69,58,.11)'}"><b>${h}:00 CST</b><span>${s.n} trades</span><span class="${cls(s.net)}">${money(s.net)}</span></div>`}).join('')+'</div>';}
 function renderStreak(){const base=currentBaseTrades(); $('streak').innerHTML='<div class="ticks">'+trades.map(t=>`<span class="tick ${t.net_pnl>0?'w':'l'} ${base.includes(t)?'':'excluded'}"></span>`).join('')+'</div>';}
 function renderScenario(base, effective){const baseline=summarize(base), adjusted=summarize(effective); const moved=effective.filter(t=>t.scenario_moved); const eligible=base.filter(t=>t.pnl_pct < thresholdPct); if(scenarioActive){$('scenarioPanel').innerHTML=`<b>Scenario active:</b> ${moved.length} trade(s) moved up to ${pct(thresholdPct)}. Adjusted PnL ${money(adjusted.net,2)} vs baseline ${money(baseline.net,2)}. Impact: <b class="${cls(adjusted.net-baseline.net)}">${money(adjusted.net-baseline.net,2)}</b>. PF ${baseline.pf?baseline.pf.toFixed(2):'n/a'} → ${adjusted.pf?adjusted.pf.toFixed(2):'n/a'}.`; } else {$('scenarioPanel').innerHTML=`Loss line: <b>${pct(thresholdPct)}</b>. ${eligible.length} visible trade(s) are below the line. Box-select dots, then click <b>Move below line to line</b> to model better stops.`;}}
@@ -241,21 +396,23 @@ function computeScatterRange(baseItems){
 }
 function computeDurationCap(baseItems){const ds=baseItems.map(t=>t.duration_min||0).filter(Number.isFinite); if(!ds.length)return 60; const q=ds.length>=20?quantile(ds,.95):Math.max(...ds); return Math.max(60, Math.ceil(q/30)*30);}
 function renderScatter(baseItems){
-  const w=760,h=390,left=72,right=700,top=28,bottom=318;
+  const isMobile=(typeof window!=='undefined')&&window.matchMedia&&window.matchMedia('(max-width: 720px)').matches;
+  const w=760, h=isMobile?820:390, left=72, right=700, top=28, bottom=h-72;
+  const xTickLblY=bottom+22, xTitleY=h-16, midY=Math.round(h/2);
   const rangeObj = computeScatterRange(baseItems), {lo:yLo, hi:yHi, ticks:yTicks} = rangeObj;
   const xCap=computeDurationCap(baseItems);
   const X=x=>left+Math.min(x,xCap)/xCap*(right-left);
   const Y=y=>top+(yHi-Math.max(yLo,Math.min(yHi,y)))/(yHi-yLo)*(bottom-top);
   const pctFromY=py=>yHi-(py-top)/(bottom-top)*(yHi-yLo);
-  let body=`<text x="${w/2}" y="374" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">Hold duration in minutes; right edge caps trades ≥ ${xCap}m. Y viewport uses p3-p97 so outliers do not flatten the cluster.</text><text x="18" y="176" fill="#9d9a91" font-size="12" font-weight="650" transform="rotate(-90 18 176)" text-anchor="middle">Trade return %</text>`;
+  let body=`<text x="${w/2}" y="${xTitleY}" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">Hold duration in minutes; right edge caps trades ≥ ${xCap}m. Y viewport uses p3-p97 so outliers do not flatten the cluster.</text><text x="18" y="${midY}" fill="#9d9a91" font-size="12" font-weight="650" transform="rotate(-90 18 ${midY})" text-anchor="middle">Trade return %</text>`;
   const xTicks=[0,xCap*.25,xCap*.5,xCap*.75,xCap].map(v=>Math.round(v/5)*5);
-  [...new Set(xTicks)].forEach(x=>{body+=`<line x1="${X(x)}" y1="${top}" x2="${X(x)}" y2="${bottom}" stroke="#2a2e36"/><text x="${X(x)}" y="340" fill="#9d9a91" font-size="11" text-anchor="middle">${x===xCap?'≥':''}${x}m</text>`});
+  [...new Set(xTicks)].forEach(x=>{body+=`<line x1="${X(x)}" y1="${top}" x2="${X(x)}" y2="${bottom}" stroke="#2a2e36"/><text x="${X(x)}" y="${xTickLblY}" fill="#9d9a91" font-size="11" text-anchor="middle">${x===xCap?'≥':''}${x}m</text>`});
   yTicks.forEach(y=>{body+=`<line x1="${left}" y1="${Y(y)}" x2="${right}" y2="${Y(y)}" stroke="#2a2e36"/><text x="${left-8}" y="${Y(y)+4}" fill="#9d9a91" font-size="11" text-anchor="end">${Math.round(y)}%</text>`});
   if(rangeObj.clippedHigh) body+=`<text x="${right}" y="${top+12}" fill="#9d9a91" font-size="10.5" text-anchor="end">▲ max ${Math.round(rangeObj.fullMax)}%</text>`;
   if(rangeObj.clippedLow) body+=`<text x="${right}" y="${bottom-8}" fill="#9d9a91" font-size="10.5" text-anchor="end">▼ min ${Math.round(rangeObj.fullMin)}%</text>`;
   const ty=Y(thresholdPct), handleX=right-122;
   body+=`<line class="thresholdLine" x1="${left}" y1="${ty}" x2="${right}" y2="${ty}" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="8 6" style="cursor:crosshair;pointer-events:none"/><rect class="thresholdHandle" x="${handleX}" y="${Math.max(top+2,Math.min(bottom-36,ty-18))}" width="116" height="34" rx="17" fill="#ffd166" stroke="#08090b" stroke-width="1.5" style="cursor:ns-resize;pointer-events:all"/><text class="thresholdLabel" x="${handleX+58}" y="${Math.max(top+24,Math.min(bottom-14,ty+4))}" fill="#08090b" font-size="12" font-weight="900" text-anchor="middle" style="pointer-events:none">↕ ${pct(thresholdPct)}</text>`;
-  trades.forEach(t=>{const active=baseItems.includes(t), moved=scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct, rawY=moved?thresholdPct:t.pnl_pct, yVal=Math.max(yLo,Math.min(yHi,rawY)), selected=pendingSelection.has(t.id) || (scatterMode!=='none' && scatterIds.has(t.id)) || moved, col=moved?'#ffd166':(t.net_pnl>=0?'#30d158':'#ff453a'), r=3.2+Math.min(5.5,Math.sqrt(Math.max(t.entry_gross_cost,0))/24), cy=Y(yVal), cx=X(t.duration_min||0), edge=(rawY!==yVal || (t.duration_min||0)>xCap); body+=`<circle class="dot" data-id="${t.id}" data-active="${active?1:0}" cx="${cx}" cy="${cy}" r="${selected?r+2:r}" fill="${selected?'#fff':col}" stroke="${edge?'#f4f1ea':(moved?'#ffd166':'none')}" stroke-width="${edge||moved?1.5:0}" opacity="${active?'.84':'.08'}"><title>${t.symbol} ${t.entry_time} → ${t.exit_time} | ${money(t.net_pnl,2)} | ${pct(t.pnl_pct)} | ${Math.round(t.duration_min||0)}m${edge?' | edge-clamped':''}${moved?' moved to '+pct(thresholdPct):''}</title></circle>`;});
+  trades.forEach(t=>{const active=baseItems.includes(t), moved=scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct, rawY=moved?thresholdPct:t.pnl_pct, yVal=Math.max(yLo,Math.min(yHi,rawY)), selected=pendingSelection.has(t.id) || (scatterMode!=='none' && scatterIds.has(t.id)) || moved, col=moved?'#ffd166':(t.net_pnl>=0?'#30d158':'#ff453a'), r=(window.tlBubbles?Math.max(1.5,Math.min(14,Math.sqrt(Math.abs(t.net_pnl||0))*0.55)):(3.2+Math.min(5.5,Math.sqrt(Math.max(t.entry_gross_cost,0))/24))), cy=Y(yVal), cx=X(t.duration_min||0), edge=(rawY!==yVal || (t.duration_min||0)>xCap); body+=`<circle class="dot" data-id="${t.id}" data-active="${active?1:0}" cx="${cx}" cy="${cy}" r="${selected?r+2:r}" fill="${selected?'#fff':col}" stroke="${edge?'#f4f1ea':(moved?'#ffd166':'none')}" stroke-width="${edge||moved?1.5:0}" opacity="${active?'.84':'.08'}"><title>${t.symbol} ${t.entry_time} → ${t.exit_time} | ${money(t.net_pnl,2)} | ${pct(t.pnl_pct)} | ${Math.round(t.duration_min||0)}m${edge?' | edge-clamped':''}${moved?' moved to '+pct(thresholdPct):''}</title></circle>`;});
   $('scatter').innerHTML=svgWrap(w,h,body);
   wireScatterBox({top,bottom,Y,pctFromY,yLo,yHi,w,h,right});
 }
@@ -321,21 +478,99 @@ function wireScatterBox(scale){
     box.style.height='0px';
   };
 }
-function updatePills(base){$('rangePill').textContent='Range: '+(rangeStart||rangeEnd?`${rangeStart?new Date(rangeStart).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'start'} → ${rangeEnd?new Date(rangeEnd).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'end'}`:'all'); $('dayPill').textContent='Days: '+(selectedDays.size?[...selectedDays].map(d=>d.slice(5)).join(', '):'all'); $('scatterPill').textContent='Scatter: '+(scatterMode==='none'?'none':`${scatterMode} ${scatterIds.size} dots`); $('filterStatus').textContent=`Showing ${base.length} / ${trades.length} round trips${scenarioActive?' • scenario adjusted':''}`;}
+function updatePills(base){ if($('filterStatus')) $('filterStatus').textContent=`Showing ${base.length} / ${trades.length} round trips${scenarioActive?' • scenario adjusted':''}`; }
 function render(){const base=currentBaseTrades(); const effective=applyScenario(base); renderCards(effective); renderCalendar(effective); renderPctCalendar(effective); renderScatter(base); renderCurve(effective); renderPayoff(effective); renderHist(effective); renderTables(effective); renderStreak(); renderScenario(base,effective); updatePills(base);}
 $('includeSelection').onclick=()=>{if(!pendingSelection.size)return; scatterIds=new Set(pendingSelection); scatterMode='include'; pendingSelection.clear(); $('selectionCount').textContent='Active include filter applied'; render();};
 $('excludeSelection').onclick=()=>{if(!pendingSelection.size)return; scatterIds=new Set(pendingSelection); scatterMode='exclude'; pendingSelection.clear(); $('selectionCount').textContent='Active exclude filter applied'; render();};
 $('moveBelowLine').onclick=()=>{const base=currentBaseTrades(); const candidateIds=pendingSelection.size?pendingSelection:new Set(base.map(t=>t.id)); scenarioIds=new Set([...candidateIds].filter(id=>{const t=trades.find(x=>x.id===id); return t && base.includes(t) && t.pnl_pct < thresholdPct;})); scenarioActive=scenarioIds.size>0; pendingSelection.clear(); $('selectionCount').textContent=scenarioActive?`Scenario moved ${scenarioIds.size} dots`:'No selected/visible dots below line'; render();};
 $('clearScenario').onclick=()=>{scenarioActive=false; scenarioIds.clear(); pendingSelection.clear(); if($('selectionCount')) $('selectionCount').textContent='No dots selected'; render();};
-$('clearSelection').onclick=()=>{scatterMode='none'; scatterIds.clear(); pendingSelection.clear(); $('selectionCount').textContent='No dots selected'; render();};
-$('clearDays').onclick=()=>{selectedDays.clear(); render();};
-$('applyRange').onclick=()=>{rangeStart=$('rangeStart').value?new Date($('rangeStart').value).getTime():null; rangeEnd=$('rangeEnd').value?new Date($('rangeEnd').value).getTime():null; render();};
-$('clearRange').onclick=()=>{rangeStart=null; rangeEnd=null; $('rangeStart').value=''; $('rangeEnd').value=''; render();};
-$('resetAll').onclick=()=>{selectedDays.clear(); scatterMode='none'; scatterIds.clear(); pendingSelection.clear(); scenarioActive=false; scenarioIds.clear(); rangeStart=null; rangeEnd=null; $('rangeStart').value=''; $('rangeEnd').value=''; thresholdPct=-51; $('selectionCount').textContent='No dots selected'; render();};
+$('resetAll').onclick=()=>{
+  selectedDays.clear();
+  scatterMode='none'; scatterIds.clear(); pendingSelection.clear();
+  scenarioActive=false; scenarioIds.clear();
+  rangeStart=null; rangeEnd=null; rangePreset=null;
+  thresholdPct=-51;
+  if($('selectionCount')) $('selectionCount').textContent='No dots selected';
+  refreshDateRangeLabel();
+  render();
+};
 document.querySelectorAll('.expand').forEach(btn=>btn.onclick=()=>{const panel=btn.closest('.panel'); $('modalContent').innerHTML='<h2>'+panel.querySelector('h2').textContent+'</h2><div class="hint">Expanded read-only view. Use controls on the main chart to filter.</div>'+panel.innerHTML.replace(/<button class="expand">Expand<\/button>/,''); $('modalContent').querySelectorAll('[id]').forEach(el=>el.removeAttribute('id')); $('modalContent').querySelectorAll('button').forEach(el=>el.remove()); $('modal').classList.add('open');});
 $('closeModal').onclick=()=> $('modal').classList.remove('open');
 $('modal').onclick=e=>{if(e.target.id==='modal') $('modal').classList.remove('open');};
-const minExit = trades.reduce((m,t)=>Math.min(m,toMs(t.exit_dt)),Infinity), maxExit = trades.reduce((m,t)=>Math.max(m,toMs(t.exit_dt)),-Infinity);
-if(isFinite(minExit)){ $('rangeStart').min=new Date(minExit).toISOString().slice(0,16); $('rangeStart').max=new Date(maxExit).toISOString().slice(0,16); $('rangeEnd').min=new Date(minExit).toISOString().slice(0,16); $('rangeEnd').max=new Date(maxExit).toISOString().slice(0,16); }
+// ----- Date-range popover wiring (see / for full annotated version) -----
+const PRESET_LABELS = { today:'Today', last7:'Last 7 days', thisweek:'This week', thismonth:'This month', last30:'Last 30 days', all:'All time' };
+function _startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0).getTime(); }
+function _endOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999).getTime(); }
+function applyRangePreset(preset){
+  const now = new Date();
+  const sToday = _startOfDay(now), eToday = _endOfDay(now);
+  if (preset === 'today') { rangeStart = sToday; rangeEnd = eToday; }
+  else if (preset === 'last7') { rangeStart = sToday - 6*86400000; rangeEnd = eToday; }
+  else if (preset === 'last30') { rangeStart = sToday - 29*86400000; rangeEnd = eToday; }
+  else if (preset === 'thisweek') { const dow = (now.getDay() + 6) % 7; rangeStart = sToday - dow*86400000; rangeEnd = eToday; }
+  else if (preset === 'thismonth') { rangeStart = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0).getTime(); rangeEnd = eToday; }
+  else { rangeStart = null; rangeEnd = null; }
+  rangePreset = preset;
+  refreshDateRangeLabel();
+  render();
+}
+function refreshDateRangeLabel(){
+  const lbl = $('dateRangeLabel'); if (!lbl) return;
+  if (rangePreset && PRESET_LABELS[rangePreset]) { lbl.textContent = PRESET_LABELS[rangePreset]; return; }
+  if (rangeStart == null && rangeEnd == null) { lbl.textContent = 'All time'; return; }
+  const fmt = ms => new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  lbl.textContent = `${rangeStart?fmt(rangeStart):'start'} → ${rangeEnd?fmt(rangeEnd):'end'}`;
+}
+function openDateRangePopover(){
+  const pop = $('dateRangePopover'); if (!pop) return;
+  pop.hidden = false;
+  const dateStr = ms => ms ? new Date(ms - new Date(ms).getTimezoneOffset()*60000).toISOString().slice(0,10) : '';
+  if ($('dr-from')) $('dr-from').value = dateStr(rangeStart);
+  if ($('dr-to')) $('dr-to').value = dateStr(rangeEnd);
+  pop.querySelectorAll('.dr-shortcut').forEach(b => b.classList.toggle('active', b.dataset.preset === (rangePreset || (rangeStart==null && rangeEnd==null ? 'all' : ''))));
+  const btn = $('dateRangeBtn'); if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+function closeDateRangePopover(){
+  const pop = $('dateRangePopover'); if (!pop) return;
+  pop.hidden = true;
+  const btn = $('dateRangeBtn'); if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+if ($('dateRangeBtn')) $('dateRangeBtn').onclick = openDateRangePopover;
+document.querySelectorAll('#dateRangePopover .dr-shortcut').forEach(b => b.onclick = () => { applyRangePreset(b.dataset.preset); closeDateRangePopover(); });
+document.querySelectorAll('#dateRangePopover [data-dr-close]').forEach(el => el.addEventListener('click', closeDateRangePopover));
+const drApplyBtn = document.querySelector('#dateRangePopover .dr-apply');
+if (drApplyBtn) drApplyBtn.onclick = () => {
+  const from = $('dr-from').value, to = $('dr-to').value;
+  rangeStart = from ? new Date(from + 'T00:00:00').getTime() : null;
+  rangeEnd = to ? new Date(to + 'T23:59:59.999').getTime() : null;
+  rangePreset = (rangeStart == null && rangeEnd == null) ? 'all' : null;
+  refreshDateRangeLabel();
+  closeDateRangePopover();
+  render();
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDateRangePopover(); });
+refreshDateRangeLabel();
+// ----- Perf: memoize tz parses + rAF-debounce render (see / dashboard for rationale) -----
+(function(){
+  const _ms=new Map(), _hm=new Map(), _min=new Map(), _sess=new Map(), _lbl=new Map();
+  const _oPM=parseSourceMs, _oHM=cstHM, _oMin=cstMinutes, _oSess=sessionBucket, _oLbl=cstTimeLabel;
+  parseSourceMs=function(s){ if(typeof s!=='string') return _oPM(s); let v=_ms.get(s); if(v===undefined){v=_oPM(s); _ms.set(s,v);} return v; };
+  cstHM=function(s){ if(typeof s!=='string') return _oHM(s); let v=_hm.get(s); if(v===undefined){v=_oHM(s); _hm.set(s,v);} return v; };
+  cstMinutes=function(s){ if(typeof s!=='string') return _oMin(s); let v=_min.get(s); if(v===undefined){v=_oMin(s); _min.set(s,v);} return v; };
+  sessionBucket=function(s){ if(typeof s!=='string') return _oSess(s); let v=_sess.get(s); if(v===undefined){v=_oSess(s); _sess.set(s,v);} return v; };
+  cstTimeLabel=function(s){ if(typeof s!=='string') return _oLbl(s); let v=_lbl.get(s); if(v===undefined){v=_oLbl(s); _lbl.set(s,v);} return v; };
+  const _oR=render; let _scheduled=false;
+  render=function(){ if(_scheduled) return; _scheduled=true; requestAnimationFrame(()=>{_scheduled=false; _oR();}); };
+})();
 render();
-</script></body></html>
+
+// Bubble mode.
+(function(){var b=document.getElementById('bubbleToggle'); if(!b) return;
+  function sync(){b.classList.toggle('active', !!window.tlBubbles);}
+  b.addEventListener('click', function(){window.tlBubbles = !window.tlBubbles; sync(); if(typeof render==='function') render();});
+  sync();
+})();
+
+</script>
+<script src="/assets/cards.js?v=carousel7" defer></script>
+</body></html>

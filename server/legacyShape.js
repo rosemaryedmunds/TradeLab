@@ -9,7 +9,41 @@
 
 import { db } from './db.js';
 
-const MULT = 100;
+// Options use a flat $100/contract multiplier. Futures use a per-root
+// dollar-per-point multiplier; the table below covers the common micros and
+// fulls. Anything not in FUTURES_MULT is treated as an option contract.
+const OPT_MULT = 100;
+const FUTURES_MULT = {
+  ES: 50, MES: 5,
+  NQ: 20, MNQ: 2,
+  RTY: 50, M2K: 5,
+  YM: 5,  MYM: 0.5,
+  CL: 1000, MCL: 100,
+  GC: 100,  MGC: 10,
+  SI: 5000, SIL: 1000,
+  ZN: 1000, ZB: 1000,
+};
+// Default user-facing "base value" per contract — the denominator for PnL %.
+// Approximates working margin so % returns on futures are comparable to
+// option-strategy % returns. Users override via the dashboard's futures-base
+// editor; this is just the seed value.
+const FUTURES_BASE_DEFAULT = {
+  ES: 1000, MES: 100,
+  NQ: 1000, MNQ: 100,
+  RTY: 1000, M2K: 100,
+  YM: 500,  MYM: 50,
+  CL: 1000, MCL: 100,
+  GC: 1500, MGC: 150,
+};
+function tradeMult(root) {
+  return Object.prototype.hasOwnProperty.call(FUTURES_MULT, root) ? FUTURES_MULT[root] : OPT_MULT;
+}
+function isFuturesRoot(root) {
+  return Object.prototype.hasOwnProperty.call(FUTURES_MULT, root);
+}
+function futuresBaseValue(root) {
+  return FUTURES_BASE_DEFAULT[root] != null ? FUTURES_BASE_DEFAULT[root] : 500;
+}
 
 const toLegacyDt = (iso) => iso ? iso.replace('T', ' ') : null;
 const dateOnly = (iso) => iso ? iso.slice(0, 10) : null;
@@ -18,12 +52,13 @@ const r = (n, p = 5) => n == null ? null : Math.round(n * 10 ** p) / 10 ** p;
 export function legacyTrades({ includeOpen = false } = {}) {
   // The legacy dashboards (/, /csv, /today) expect closed round trips only —
   // their date/PF math chokes on null exit_dt. Open positions surface on /trades.
-  const trades = db.prepare(
-    includeOpen
-      ? `SELECT * FROM trades ORDER BY entry_dt`
-      : `SELECT * FROM trades WHERE exit_dt IS NOT NULL ORDER BY entry_dt`
+  const where = includeOpen ? '' : `WHERE exit_dt IS NOT NULL`;
+  const trades = db.prepare(`SELECT * FROM trades ${where} ORDER BY entry_dt`).all();
+  if (!trades.length) return [];
+  const execs = db.prepare(
+    `SELECT e.* FROM executions e JOIN trades t ON t.id = e.trade_id
+      ORDER BY e.trade_id, e.dt`
   ).all();
-  const execs = db.prepare(`SELECT * FROM executions ORDER BY trade_id, dt`).all();
   const execByTrade = new Map();
   for (const e of execs) {
     if (!execByTrade.has(e.trade_id)) execByTrade.set(e.trade_id, []);
@@ -33,6 +68,8 @@ export function legacyTrades({ includeOpen = false } = {}) {
   // First pass: compute per-trade gross/net/pct from executions when present.
   const out = trades.map((t, i) => {
     const ladder = execByTrade.get(t.id) || [];
+    const MULT = tradeMult(t.root);                 // 100 for options, $/pt for futures
+    const isFut = isFuturesRoot(t.root);
     let cash = 0, commission = 0;
     let buyQty = 0, buyValue = 0, sellQty = 0, sellValue = 0;
     let entry_dt = t.entry_dt, exit_dt = t.exit_dt;
@@ -77,8 +114,19 @@ export function legacyTrades({ includeOpen = false } = {}) {
     const net_pnl   = ladder.length ? r(cash + commission)
                     : (grossFromPrices != null ? r(grossFromPrices + (t.commission || 0)) : null);
 
-    const entry_gross_cost     = r(Math.abs(entry_price) * t.quantity * MULT);
-    const exit_gross_proceeds  = exit_price != null ? r(Math.abs(exit_price) * t.quantity * MULT) : null;
+    // Futures: PnL % uses a per-contract "base value" (proxy for working
+    // margin) instead of the full notional, otherwise a $5/pt move on 9 MES
+    // contracts dilutes to ~0% against a $6.75M notional denominator. The
+    // server bakes a default; the client lets the user override it via a
+    // small editor (persisted in localStorage) and recomputes pnl_pct on
+    // the fly.
+    const entry_gross_cost = isFut
+      ? r(futuresBaseValue(t.root) * t.quantity)
+      : r(Math.abs(entry_price) * t.quantity * MULT);
+    const exit_gross_proceeds  = exit_price != null
+      ? (isFut ? r(futuresBaseValue(t.root) * t.quantity)
+               : r(Math.abs(exit_price) * t.quantity * MULT))
+      : null;
 
     const pnl_pct = net_pnl != null && entry_gross_cost > 0
       ? r((net_pnl / entry_gross_cost) * 100, 5) : null;
@@ -123,7 +171,13 @@ export function legacyTrades({ includeOpen = false } = {}) {
       execution_ladder: ladderOut,
       cum_pnl: 0,
       drawdown: 0,
-      round_trip_id: t.id
+      round_trip_id: t.id,
+      // Futures metadata so the client can recompute % against a user-set
+      // base value. Multiplier is the $/pt the server already applied to
+      // net_pnl/gross_pnl; the client should NOT re-multiply.
+      is_futures: isFut,
+      contract_mult: MULT,
+      base_value_default: isFut ? futuresBaseValue(t.root) : null
     };
   });
 
