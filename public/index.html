@@ -1,665 +1,173 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Trade Performance Lab</title><link rel="icon" href="data:,"><style>
-:root{
-  color-scheme: dark;
-  --bg:#08090b; --surface:#101114; --surface2:#15171b; --elev:#1a1d23; --line:#2a2e36;
-  --text:#f4f1ea; --muted:#9d9a91; --soft:#d8d2c5; --green:#30d158; --red:#ff453a; --amber:#ffd166; --blue:#66a3ff;
-  --radius:18px; --shadow:0 18px 50px rgba(0,0,0,.30);
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-*{box-sizing:border-box} html,body{margin:0;min-width:0;background:var(--bg);color:var(--text)} body{overflow-x:hidden;line-height:1.45;font-feature-settings:"tnum" 1,"ss01" 1;text-rendering:optimizeLegibility}
-.page{width:min(100%,1320px);margin:0 auto;padding:clamp(24px,4vw,64px);background:linear-gradient(180deg,#0b0c0f 0%,#08090b 42%,#07080a 100%)}
-.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end;margin-bottom:30px;padding-bottom:22px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--amber);font-weight:800;letter-spacing:.18em;text-transform:uppercase;font-size:12px}.title{font-size:clamp(42px,6vw,76px);line-height:.92;font-weight:760;letter-spacing:-.055em;margin-top:10px}.sub{max-width:860px;font-size:clamp(15px,1.45vw,19px);color:var(--muted);font-weight:520;margin-top:14px}.badge{border:1px solid var(--line);border-radius:999px;padding:11px 16px;background:#111317;color:var(--soft);font-size:13px;font-weight:750;white-space:nowrap}
-.filterbar{position:sticky;top:0;z-index:30;margin:0 0 26px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:20px;background:rgba(12,13,16,.90);backdrop-filter:blur(16px);display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 10px 34px rgba(0,0,0,.25)}.pill{border:1px solid var(--line);border-radius:999px;background:#13151a;color:var(--soft);min-height:40px;padding:10px 14px;font-weight:700;font-size:13px}.rangeCtl{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;background:#101217;color:var(--soft);min-height:40px;padding:7px 10px;font-weight:750;font-size:12px}.rangeCtl input{background:#0b0c0f;color:var(--soft);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 8px;font:inherit;min-width:180px}.curveTip{pointer-events:none}.curveTipBox{filter:drop-shadow(0 10px 24px rgba(0,0,0,.45))}.pill.action{cursor:pointer}.pill.action:hover{border-color:#5b6473;background:#1b1f27;color:#fff}.status{margin-left:auto;color:var(--muted);font-size:13px;font-weight:700}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:24px}.card,.panel{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}.metric{padding:20px}.label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.13em;font-weight:800}.val{font-size:clamp(18px,1.65vw,26px);font-weight:760;letter-spacing:-.045em;margin-top:10px;line-height:1.05;white-space:nowrap;overflow:visible;word-break:normal;overflow-wrap:normal;font-variant-numeric:tabular-nums}.note{font-size:12px;color:var(--muted);font-weight:560;margin-top:8px;line-height:1.4}.good{color:var(--green)}.bad{color:var(--red)}.amber{color:var(--amber)}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}.panel{padding:24px;position:relative;min-width:0}.panel h2{margin:0;font-size:clamp(20px,2vw,28px);font-weight:720;letter-spacing:-.035em}.hint{font-size:13px;color:var(--muted);font-weight:520;margin:8px 0 16px;line-height:1.5;max-width:90%}.wide{grid-column:1/-1}.svg{width:100%;height:auto;display:block;touch-action:none}.expand{position:absolute;right:18px;top:18px;border:1px solid var(--line);background:#121419;color:var(--soft);border-radius:999px;padding:8px 11px;font-size:12px;font-weight:760;cursor:pointer}.expand:hover{border-color:#606a78;color:#fff}.panel:hover{border-color:rgba(255,255,255,.20)}
-.calgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.dow{font-size:11px;color:var(--muted);font-weight:800;text-align:center;letter-spacing:.14em;text-transform:uppercase}.day{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:12px;min-height:88px;cursor:pointer;transition:.15s transform,.15s border-color;display:flex;flex-direction:column;justify-content:space-between}.day:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.38)}.day.selected{outline:2px solid #fff;box-shadow:0 0 0 5px rgba(255,209,102,.20)}.day b{font-size:14px}.day span{font-size:16px;font-weight:760}.day em{font-style:normal;font-size:11px;color:rgba(255,255,255,.75);font-weight:650}.day.empty{background:#111317;color:#696b70;cursor:default}.day.empty:hover{transform:none}
-.scatter-wrap{position:relative}.selectionBox{position:absolute;border:1.5px solid #fff;background:rgba(102,163,255,.16);pointer-events:none;display:none}.xToggle{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:999px;padding:3px;background:#101217;margin-top:8px}.xTab{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:800;letter-spacing:.02em;padding:6px 12px;border-radius:999px;cursor:pointer;min-height:30px}.xTab.active{background:#ffd166;color:#08090b}.xTab:not(.active):hover{color:var(--soft)}.selectActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}.selectActions .pill{min-height:38px;padding:8px 12px}.small{font-size:12px;color:var(--muted);font-weight:620}.scenarioBox{margin-top:14px;padding:14px 16px;border:1px solid rgba(255,209,102,.35);border-radius:16px;background:rgba(255,209,102,.07);color:var(--soft);font-size:13px;font-weight:560;line-height:1.5}.scenarioBox b{color:var(--amber)}.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:650}.sw{width:18px;height:10px;border-radius:99px;display:inline-block}.sw.g{background:var(--green)}.sw.r{background:var(--red)}
-table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:14px}th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;padding:0 10px;font-weight:800}td{background:#13151a;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 10px;font-weight:620}td:first-child{border-left:1px solid var(--line);border-radius:12px 0 0 12px}td:last-child{border-right:1px solid var(--line);border-radius:0 12px 12px 0}.ticks{display:flex;gap:4px;flex-wrap:wrap}.tick{width:9px;height:28px;border-radius:6px}.tick.w{background:var(--green)}.tick.l{background:var(--red)}.tick.excluded{opacity:.18}.mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.hour{border:1px solid var(--line);border-radius:15px;padding:13px;text-align:center;background:#13151a}.hour b,.hour span{display:block}.hour b{font-size:13px}.hour span{font-size:12px;color:var(--muted);font-weight:620;margin-top:5px}.modal{position:fixed;inset:0;background:rgba(4,5,7,.88);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}.modal.open{display:flex}.modalCard{width:min(96vw,1320px);max-height:92vh;overflow:auto;background:#111317;border:1px solid #3a404b;border-radius:26px;padding:26px}.close{float:right;border:1px solid var(--line);background:#15171b;color:var(--soft);border-radius:999px;padding:9px 13px;font-weight:800;cursor:pointer}.foot{color:var(--muted);font-size:13px;font-weight:520;line-height:1.55;margin:24px 2px 0}
-@media (max-width:1050px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.grid{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.status{margin-left:0;width:100%}.mini{grid-template-columns:repeat(2,minmax(0,1fr))}.hint{max-width:100%}}
-@media (max-width:620px){.page{padding:18px;overflow:hidden}.cards{grid-template-columns:1fr;gap:11px}.metric,.panel{padding:16px;border-radius:16px}.val{font-size:clamp(18px,5vw,22px);letter-spacing:-.055em;white-space:normal}.filterbar{border-radius:16px}.pill{font-size:12px;min-height:38px}.calgrid{gap:7px}.day{padding:9px;min-height:78px;border-radius:13px}.day span{font-size:12px}.day em{font-size:10px}.title{font-size:clamp(34px,12vw,48px);letter-spacing:-.045em;overflow-wrap:anywhere}.sub,.hint{overflow-wrap:anywhere}.expand{display:none}.panel h2{padding-right:0}.badge:not(a){display:none}a.badge{padding:8px 12px;font-size:12px;margin-left:6px!important}table{font-size:12px}.hide-mobile{display:none}.hero{grid-template-columns:1fr;gap:14px}}
+/*
+ * rose-theme.css
+ * Applies rose.trading design system to TradeLab
+ * Colors: #0B0C15 bg, #1C1E2D cards, #998BFF purple, #5F5CFF blue, #E0E0E0 text
+ */
 
-</style><link rel="stylesheet" href="/assets/mobile.css?v=carousel7">
-</head><body>
-<div class="page">
-  <header class="hero">
-    <div><h1 class="title" style="margin:0">Trade Performance Lab</h1></div>
-    <nav class="hero-nav" aria-label="Sections">
-      <a href="/" class="hero-nav-link active">Overall</a>
-      <a href="/today" class="hero-nav-link">Daily</a>
-      <a href="/trades" class="hero-nav-link">Manage</a>
-      <a href="/doctor" class="hero-nav-link">Doctor</a>
-    </nav>
-  </header>
-  <div class="futures-banner" id="futuresBanner" hidden></div>
-  <div class="filterbar">
-    <button class="pill action dr-trigger" id="dateRangeBtn" type="button" aria-haspopup="dialog" aria-expanded="false">
-      <span class="dr-trigger-icon" aria-hidden="true">📅</span>
-      <span class="dr-trigger-label" id="dateRangeLabel">All time</span>
-      <span class="dr-trigger-chev" aria-hidden="true">▾</span>
-    </button>
-    <div class="xToggle" id="sessToggle" role="tablist" title="Filter by entry time vs RTH 8:30-15:00 CT">
-      <button class="xTab" data-session="all" role="tab">All</button>
-      <button class="xTab active" data-session="rth" role="tab">RTH</button>
-      <button class="xTab" data-session="eth" role="tab">ETH</button>
-    </div>
-    <button class="pill action" id="resetAll" type="button">Reset</button>
-    <span class="status" id="filterStatus"></span>
-  </div>
-  <div class="dr-popover" id="dateRangePopover" hidden>
-    <div class="dr-backdrop" data-dr-close></div>
-    <div class="dr-panel" role="dialog" aria-modal="true" aria-label="Date range">
-      <div>
-        <div class="dr-section-label">Quick</div>
-        <div class="dr-shortcuts">
-          <button class="dr-shortcut" data-preset="today" type="button">Today</button>
-          <button class="dr-shortcut" data-preset="last7" type="button">Last 7 days</button>
-          <button class="dr-shortcut" data-preset="thisweek" type="button">This week</button>
-          <button class="dr-shortcut" data-preset="thismonth" type="button">This month</button>
-          <button class="dr-shortcut" data-preset="last30" type="button">Last 30 days</button>
-          <button class="dr-shortcut" data-preset="all" type="button">All time</button>
-        </div>
-      </div>
-      <div class="dr-custom">
-        <div class="dr-section-label">Custom range</div>
-        <div class="dr-custom-inputs">
-          <label>From<input type="date" id="dr-from"></label>
-          <label>To<input type="date" id="dr-to"></label>
-        </div>
-      </div>
-      <div class="dr-actions">
-        <button class="dr-cancel" type="button" data-dr-close>Cancel</button>
-        <button class="dr-apply" type="button">Apply</button>
-      </div>
-    </div>
-  </div>
-  <div class="cards" id="cards"></div>
-  <div class="grid" id="grid">
-    <section class="panel" id="calendarPanel" data-card-id="calendarPanel"><button class="expand">Expand</button><h2>Calendar heatmap (net $)</h2><div class="hint">Level I filter: click one or more day cells. All charts and statistics recalculate from the selected days. Click toggles selection on either calendar.</div><label style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:.04em"><input type="checkbox" id="hideCalCounts" style="accent-color:#ffd166;cursor:pointer"> Hide trade counts</label><div id="calendar"></div></section>
-    <section class="panel" id="pctCalendarPanel" data-card-id="pctCalendarPanel"><button class="expand">Expand</button><h2>Calendar heatmap (return %)</h2><div class="hint">Return on deployed capital per day = daily net PnL / daily entry gross cost. Same day-click toggle as the dollar calendar.</div><div id="pctCalendar"></div></section>
-    <section class="panel" id="curvePanel" data-card-id="curvePanel"><button class="expand">Expand</button><h2>Cumulative PnL curve</h2><div class="hint">Running realized PnL. Multi-day filtered sets bucket into RTH hours (overnight gaps removed). Single-day filtered sets flex to actual first-entry → last-exit window with intraday ticks.</div><div id="curve"></div></section>
-    <section class="panel" id="payoffPanel" data-card-id="payoffPanel"><button class="expand">Expand</button><h2>Payoff waterfall</h2><div class="hint">Average gross win contribution - average gross loss contribution - average fee per round trip = average net trade.</div><div id="payoff"></div><div class="small">Fee is broker drag averaged across round-trip trades. Win/loss bars are frequency-weighted gross PnL contributions so the waterfall ties exactly to Avg Trade.</div></section>
-    <section class="panel wide" id="scatterPanel" data-card-id="scatterPanel"><button class="expand">Expand</button><h2>Return scatter</h2><div class="xToggle" role="tablist"><button class="xTab active" data-x="duration" role="tab">Duration</button><button class="xTab" data-x="time" role="tab">Time of day</button><button class="xTab" id="bubbleToggle" type="button" title="Size dots by P&amp;L $" style="margin-left:8px; border:1px solid var(--line); padding:6px 12px;">Bubbles</button></div><div class="hint">Drag the right-side amber handle to set your max-loss threshold. Box-select dots to include/exclude, or model selected losers as if they stopped at the line. Switch the X axis between hold duration and entry time of day; selection and threshold carry across views.</div><div class="scatter-wrap"><div id="scatter"></div><div class="selectionBox" id="selectionBox"></div></div><div class="selectActions"><button class="pill action" id="includeSelection">Include selected</button><button class="pill action" id="excludeSelection">Exclude selected</button><button class="pill action" id="moveBelowLine">Move below line to line</button><button class="pill action" id="clearScenario">Clear scenario</button><span class="small" id="selectionCount">No dots selected</span></div><div class="scenarioBox" id="scenarioPanel">Drag the amber line to test max-loss rules. Then move selected dots below the line to that level.</div></section>
-    <section class="panel" id="distPanel" data-card-id="distPanel"><button class="expand">Expand</button><h2>Return distribution</h2><div class="hint">Trade-level return percent for the current filtered set.</div><div id="hist"></div></section>
-    <section class="panel" id="sessionPanel" data-card-id="sessionPanel"><button class="expand">Expand</button><h2>Session profit factor</h2><div class="hint">Entry-time buckets in Central Time (RTH 8:30-15:00 CST). PF = sum winning net PnL / abs(sum losing net PnL).</div><div id="sessions"></div></section>
-    <section class="panel" id="hourPanel" data-card-id="hourPanel"><button class="expand">Expand</button><h2>Entry-hour heat strip</h2><div class="hint">Hour of first fill in Central Time. Green = positive net PnL, red = negative net PnL.</div><div class="legend"><span class="sw g"></span>positive net PnL <span class="sw r"></span>negative net PnL</div><div id="hours"></div></section>
-    <section class="panel wide" id="streakPanel" data-card-id="streakPanel"><button class="expand">Expand</button><h2>Trade streak strip</h2><div class="hint">Each tick is one flat-to-flat round trip in exit order. Dimmed ticks are currently filtered out.</div><div id="streak"></div></section>
-  </div>
-  <div class="modal" id="modal"><div class="modalCard"><button class="close" id="closeModal">Close</button><div id="modalContent"></div></div></div>
-  <div class="foot">Definitions: Profit Factor = sum winning net PnL / abs(sum losing net PnL). Risk/Reward = average winning net PnL / abs(average losing net PnL). Period PnL % = sum net PnL / sum entry gross cost / capital deployed. One contract per row is a fill, not a trade; the dashboard aggregates fills into round trips via FIFO matching.</div>
-<script id="trade-data" type="application/json">[]</script>
-<script>
-const trades = JSON.parse(document.getElementById('trade-data').textContent);
-// ----- Futures base-value config -----
-// Server bakes is_futures + contract_mult + base_value_default into each row.
-// Here we layer the user's localStorage overrides over the defaults so
-// entry_gross_cost (the % denominator) reflects working margin rather than
-// full notional. Without this, a 5-pt move on 9 MES contracts dilutes to
-// ~0% against $6.75M of phantom notional.
-let _futuresBase = {};
-try { _futuresBase = JSON.parse(localStorage.getItem('tl_fut_base') || '{}'); } catch(e) {}
-const _futuresRoots = [...new Set(trades.filter(t => t.is_futures).map(t => t.root))].sort();
-function baseValueFor(root){
-  const t = trades.find(x => x.root === root);
-  const def = t ? t.base_value_default : 500;
-  return _futuresBase[root] != null ? _futuresBase[root] : def;
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+:root {
+  --rose-bg:        #0B0C15;
+  --rose-card:      #1C1E2D;
+  --rose-purple:    #998BFF;
+  --rose-blue:      #5F5CFF;
+  --rose-text:      #E0E0E0;
+  --rose-text-dim:  #9094A8;
+  --rose-border:    #2A2D3E;
+  --rose-green:     #1D9E75;
+  --rose-red:       #E05555;
 }
-function applyFuturesBase(){
-  for (const t of trades) {
-    if (!t.is_futures) continue;
-    const cost = baseValueFor(t.root) * t.quantity;
-    t.entry_gross_cost = cost;
-    t.exit_gross_proceeds = cost;
-    t.pnl_pct = (t.net_pnl != null && cost > 0) ? (t.net_pnl / cost) * 100 : null;
-  }
-}
-function renderFuturesBanner(){
-  const el = document.getElementById('futuresBanner'); if (!el) return;
-  if (!_futuresRoots.length) { el.hidden = true; el.innerHTML = ''; return; }
-  const editing = el.dataset.editing === '1';
-  if (editing) {
-    el.innerHTML = `<div class="fb-title">Futures base value per contract (denominator for %)</div>` +
-      `<div class="fb-rows">` + _futuresRoots.map(r => {
-        const cur = baseValueFor(r);
-        return `<label class="fb-row"><span class="fb-root">${r}</span>$<input type="number" min="1" step="1" value="${cur}" data-root="${r}" class="fb-in"></label>`;
-      }).join('') + `</div>` +
-      `<div class="fb-actions"><button type="button" class="fb-save">Save</button><button type="button" class="fb-cancel">Cancel</button></div>`;
-    el.querySelector('.fb-save').onclick = () => {
-      el.querySelectorAll('.fb-in').forEach(i => { const v = parseFloat(i.value); if (v > 0) _futuresBase[i.dataset.root] = v; });
-      try { localStorage.setItem('tl_fut_base', JSON.stringify(_futuresBase)); } catch(e) {}
-      el.dataset.editing = '';
-      applyFuturesBase(); renderFuturesBanner(); if (typeof render === 'function') render();
-    };
-    el.querySelector('.fb-cancel').onclick = () => { el.dataset.editing = ''; renderFuturesBanner(); };
-  } else {
-    const parts = _futuresRoots.map(r => {
-      const isOverride = _futuresBase[r] != null;
-      return `<b>${r}</b> $${baseValueFor(r)}/contract${isOverride ? '' : ' <em style="font-style:normal;opacity:.65">(default)</em>'}`;
-    });
-    el.innerHTML = `<span class="fb-warn">⚠ Futures</span><span class="fb-info">${parts.join(' &nbsp;•&nbsp; ')} used as % return denominator</span><button type="button" class="fb-edit">Edit</button>`;
-    el.querySelector('.fb-edit').onclick = () => { el.dataset.editing = '1'; renderFuturesBanner(); };
-  }
-  el.hidden = false;
-}
-applyFuturesBase();
-// Render banner once DOM has parsed past it (it lives above this script).
-if (document.getElementById('futuresBanner')) renderFuturesBanner();
-else document.addEventListener('DOMContentLoaded', renderFuturesBanner, { once: true });
-const allDates = [...new Set(trades.map(t=>t.exit_date))].sort();
-let selectedDays = new Set();
-let scatterMode = 'none';
-let scatterIds = new Set();
-let pendingSelection = new Set();
-let scatterXMode = 'time';
-// Bubbles mode default = on (sized by P&L magnitude, area-proportional).
-if (typeof window !== 'undefined' && window.tlBubbles === undefined) window.tlBubbles = true;
-let sessionMode = 'rth';
-let thresholdPct = -51;
-let hideCalCounts = (typeof localStorage!=='undefined' && localStorage.getItem('tl_hideCalCounts')==='1');
-function _wireHideCounts(){const el=document.getElementById('hideCalCounts'); if(!el||el.dataset.wired)return; el.dataset.wired='1'; el.checked=hideCalCounts; el.addEventListener('change',()=>{hideCalCounts=el.checked; try{localStorage.setItem('tl_hideCalCounts',hideCalCounts?'1':'0');}catch{} render();});} 
-let scenarioActive = false;
-let scenarioIds = new Set();
-let rangeStart = null;
-let rangeEnd = null;
-let rangePreset = null;  // 'today' | 'last7' | 'thisweek' | 'thismonth' | 'last30' | 'all' | null (custom)
-const $ = id => document.getElementById(id);
-const money = (x,d=0) => (x>=0?'+$':'-$') + Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
-// Show 2 decimals when |x| < 1 so we don't display "-0.0%" / "+0.0%" for
-// small-but-nonzero values (e.g. a tiny loss day rounding to -0.0%).
-const pct = x => {
-  if (!Number.isFinite(x)) return '0.0%';
-  const sign = x >= 0 ? '+' : '';
-  const ax = Math.abs(x);
-  if (ax > 0 && ax < 1) return sign + x.toFixed(2) + '%';
-  return sign + x.toFixed(1) + '%';
-};
-function cls(x){return x>=0?'good':'bad'}
-// Stored entry_dt / exit_dt are wall-clock in the user's local TZ (Central).
-// SOURCE_TZ == DISPLAY_TZ makes parseSourceMs a no-op pass-through; RTH
-// bucketing (8:30-15:00 CT) then operates on real times.
-const SOURCE_TZ='America/Chicago', DISPLAY_TZ='America/Chicago';
-function tzParts(ms,timeZone){const out={}, f=new Intl.DateTimeFormat('en-CA',{timeZone,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); for(const p of f.formatToParts(new Date(ms))) out[p.type]=p.value; if(out.hour==='24') out.hour='00'; return out;}
-function tzOffsetMinutes(ms,timeZone){const p=tzParts(ms,timeZone); const asUTC=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second); return (asUTC-ms)/60000;}
-function parseSourceMs(s){if(typeof s==='number') return s; const str=String(s||'').trim(); if(!str) return NaN; if(/Z$|[+-]\d{2}:?\d{2}$/.test(str)) return Date.parse(str.replace(' ','T')); const m=str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); if(!m) return Date.parse(str.replace(' ','T')); const naive=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)); let off=tzOffsetMinutes(naive,SOURCE_TZ); let ms=naive-off*60000; const off2=tzOffsetMinutes(ms,SOURCE_TZ); if(off2!==off) ms=naive-off2*60000; return ms;}
-function cstHM(s){const p=tzParts(parseSourceMs(s),DISPLAY_TZ); return {h:+p.hour, m:+p.minute};}
-function cstMinutes(s){const t=cstHM(s); return t.h*60+t.m;}
-function cstTimeLabel(s){const t=cstHM(s); return String(t.h).padStart(2,'0')+':'+String(t.m).padStart(2,'0')+' CT';}
-function sessionBucket(s){const m=cstMinutes(s); if(m>=510&&m<690)return 'Morning'; if(m>=690&&m<840)return 'Midday'; if(m>=840&&m<885)return 'Power hour'; if(m>=885&&m<=900)return 'End of day'; return 'Outside RTH';}
-const toMs = s => new Date(s.replace(' ','T')).getTime();
-const fmtDT = s => s.slice(5,10)+' '+cstTimeLabel(s);
-const fmtDate = ms => new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
-function inRange(t){const x=toMs(t.exit_dt); return (rangeStart==null || x>=rangeStart) && (rangeEnd==null || x<=rangeEnd);}
-// entry_dt is stored as ET wall-clock per the project convention. Read the
-// hour:minute straight from the string (skipping the Intl.DateTimeFormat
-// pipeline) so a borderline timestamp can't slip into ETH due to a TZ
-// conversion edge case. RTH window is 9:00-16:15 ET, slightly wider than
-// strict 9:30-16:00 to capture early-bird entries and post-close fill
-// confirmations from brokers that timestamp execution receipt rather than
-// the actual match.
-function etMinutes(s){
-  const m = String(s||'').match(/T?(\d{2}):(\d{2})/);
-  if (!m) return NaN;
-  return (+m[1]) * 60 + (+m[2]);
-}
-function inSession(t){
-  if (sessionMode === 'all') return true;
-  const m = etMinutes(t.entry_dt);
-  if (!Number.isFinite(m)) return false;
-  const rth = m >= 510 && m <= 900;  // 8:30 CT .. 15:00 CT
-  return sessionMode === 'rth' ? rth : !rth;
-}
-function axisBaseTrades(){return trades.filter(t => inRange(t) && inSession(t) && (selectedDays.size===0 || selectedDays.has(t.exit_date)));}
-function currentBaseTrades(){return axisBaseTrades().filter(t => scatterMode==='none' || (scatterMode==='include' ? scatterIds.has(t.id) : !scatterIds.has(t.id)));}
-function adjustedTrade(t){ if(!(scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct)) return t; const net = t.entry_gross_cost * thresholdPct / 100; return {...t, net_pnl: net, gross_pnl: net - t.costs, pnl_pct: thresholdPct, scenario_moved: true}; }
-function applyScenario(items){ return items.map(adjustedTrade); }
-function summarize(items){const n=items.length, wins=items.filter(t=>t.net_pnl>1e-9), losses=items.filter(t=>t.net_pnl<-1e-9); const net=items.reduce((a,t)=>a+t.net_pnl,0), gross=items.reduce((a,t)=>a+t.gross_pnl,0), cost=items.reduce((a,t)=>a+t.entry_gross_cost,0); const winSum=wins.reduce((a,t)=>a+t.net_pnl,0), lossSum=losses.reduce((a,t)=>a+t.net_pnl,0); const arr=items.map(t=>t.net_pnl).sort((a,b)=>a-b); const med=n?(arr[Math.floor((n-1)/2)]+arr[Math.ceil((n-1)/2)])/2:0; let run=0,peak=0,maxDD=0; items.slice().sort((a,b)=>toMs(a.exit_dt)-toMs(b.exit_dt)||a.seq-b.seq).forEach(t=>{run+=t.net_pnl; peak=Math.max(peak,run); maxDD=Math.min(maxDD,run-peak);}); const feeSum=items.reduce((a,t)=>a+(t.fee_drag||t.costs||0),0); return {n,wins:wins.length,losses:losses.length,wr:n?wins.length/n*100:0,net,gross,pct:cost?net/cost*100:0,pf:lossSum?winSum/Math.abs(lossSum):null,avg:n?net/n:0,med,avgw:wins.length?winSum/wins.length:0,avgl:losses.length?lossSum/losses.length:0,fees:feeSum,avgFee:n?feeSum/n:0,maxDD};}
-function card(label,val,klass,note){return `<div class="card metric"><div class="label">${label}</div><div class="val ${klass||''}">${val}</div><div class="note">${note||''}</div></div>`}
-function svgWrap(w,h,body){return `<svg viewBox="0 0 ${w} ${h}" class="svg" role="img"><rect width="${w}" height="${h}" rx="16" fill="#0b0c0f"/>${body}</svg>`}
-function tradingDayKey(ms){return new Date(ms).toISOString().slice(0,10);}
-function rthHourStartMs(day,hour){return new Date(`${day}T${String(hour).padStart(2,'0')}:00:00`).getTime();}
-function compactHourlyCurvePoints(effectiveItems){
-  const sorted=effectiveItems.slice().sort((a,b)=>toMs(a.exit_dt)-toMs(b.exit_dt)||a.seq-b.seq);
-  if(!sorted.length) return [];
-  const byHour=new Map(), daySet=new Set();
-  sorted.forEach(t=>{
-    const ms=toMs(t.exit_dt), d=tradingDayKey(ms), local=new Date(ms), h=local.getHours();
-    daySet.add(d);
-    // Bucket against 8:30-15:00 CST (raw timestamps treated as Central wall-clock).
-    let bucketHour = h < 8 ? 8 : h > 15 ? 15 : h;
-    const k=`${d}|${bucketHour}`;
-    const prev=byHour.get(k)||{delta:0,count:0,examples:[]};
-    prev.delta+=t.net_pnl; prev.count+=1; if(prev.examples.length<3) prev.examples.push(t.symbol);
-    byHour.set(k,prev);
-  });
-  const days=[...daySet].sort();
-  const pts=[]; let cum=0, idx=0;
-  days.forEach(day=>{
-    for(let hour=8; hour<=15; hour++){
-      const k=`${day}|${hour}`, b=byHour.get(k)||{delta:0,count:0,examples:[]};
-      cum+=b.delta;
-      pts.push({x:idx++, day, hour, labelMs:rthHourStartMs(day,hour), y:cum, delta:b.delta, count:b.count, examples:b.examples});
-    }
-  });
-  return pts;
-}
-// Intraday curve points for single-day filtered views: flex from first entry to last exit, 10-min buckets.
-function intradayCurvePoints(effectiveItems){
-  const sorted=effectiveItems.slice().sort((a,b)=>toMs(a.exit_dt)-toMs(b.exit_dt)||a.seq-b.seq);
-  if(!sorted.length) return [];
-  const firstEntry=Math.min(...sorted.map(t=>toMs(t.entry_dt)));
-  const lastExit=Math.max(...sorted.map(t=>toMs(t.exit_dt)));
-  const STEP=10*60*1000;
-  const start=Math.floor(firstEntry/STEP)*STEP, end=Math.ceil(lastExit/STEP)*STEP;
-  const buckets=new Map();
-  sorted.forEach(t=>{const k=Math.floor(toMs(t.exit_dt)/STEP)*STEP; const prev=buckets.get(k)||{delta:0,count:0}; prev.delta+=t.net_pnl; prev.count+=1; buckets.set(k,prev);});
-  const pts=[]; let cum=0, idx=0;
-  for(let ms=start; ms<=end; ms+=STEP){
-    const b=buckets.get(ms)||{delta:0,count:0};
-    cum+=b.delta;
-    pts.push({x:idx++, labelMs:ms, y:cum, delta:b.delta, count:b.count, intraday:true});
-  }
-  return pts;
-}
-function fmtCurveTickPoint(p, compact=false){
-  if(!p) return '';
-  if(p.intraday){
-    const d=new Date(p.labelMs);
-    const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
-    if(compact) return `${hh}:${mm} CST`;
-    return `${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})} ${hh}:${mm} CST`;
-  }
-  if(compact) return new Date(p.labelMs).toLocaleDateString(undefined,{month:'short',day:'numeric'});
-  const suffix=p.hour===15?'3pm':(p.hour===8?'8:30am':new Date(p.labelMs).toLocaleTimeString(undefined,{hour:'numeric'}));
-  return `${new Date(p.labelMs).toLocaleDateString(undefined,{month:'short',day:'numeric'})} ${suffix} CST`;
-}
-function renderCurve(items){
-  // On mobile we use a much taller viewBox so the chart fills its container's
-  // natural aspect ratio (≈ 1:1) instead of leaving empty space above/below.
-  const isMobile = (typeof window!=='undefined') && window.matchMedia && window.matchMedia('(max-width: 720px)').matches;
-  const w=760, h=isMobile?720:350, left=62, right=724, top=24, bottom=h-68;
-  const labelY = bottom + 25;       // x-axis tick labels just below chart area
-  const subtitleY = h - 17;          // bottom subtitle
-  const midY = Math.round(h / 2);    // for vertical rotated label
-  const distinctDays=new Set(items.map(t=>t.exit_date));
-  const intradayMode = distinctDays.size===1 && items.length>=1;
-  const pts = intradayMode ? intradayCurvePoints(items) : compactHourlyCurvePoints(items);
-  if(!pts.length){$('curve').innerHTML=svgWrap(w,h,`<text x="${w/2}" y="${midY}" fill="#9d9a91" text-anchor="middle" font-size="14" font-weight="750">No trades in selected time range</text>`); return;}
-  const xMin=0, xMax=Math.max(1,pts.length-1), span=xMax-xMin;
-  const ys=[0,...pts.map(p=>p.y)], ymin=Math.min(0,...ys), ymax=Math.max(0,...ys), pad=(ymax-ymin)*.14||100, lo=ymin-pad, hi=ymax+pad;
-  const X=x=>left+(x-xMin)/span*(right-left), Y=y=>top+(hi-y)/(hi-lo)*(bottom-top);
-  const path=pts.map((p,i)=>(i?'L':'M')+X(p.x).toFixed(1)+','+Y(p.y).toFixed(1)).join(' '); const zero=Y(0);
-  let body=`<line x1="${left}" y1="${zero}" x2="${right}" y2="${zero}" stroke="#3b414d"/><path d="${path}" fill="none" stroke="#30d158" stroke-width="3.5" stroke-linecap="round"/>`;
-  if(intradayMode){
-    const tickCount=Math.min(8,Math.max(2,pts.length));
-    for(let i=0;i<tickCount;i++){const idx=Math.round(i*(pts.length-1)/(tickCount-1||1)), p=pts[idx], x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="${labelY}" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;}
-  } else {
-    const days=[...new Set(pts.map(p=>p.day))];
-    if(days.length<=14){
-      days.forEach(day=>{const p=pts.find(x=>x.day===day && x.hour===8) || pts.find(x=>x.day===day); const x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="${labelY}" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;});
-    } else {
-      for(let i=0;i<6;i++){const idx=Math.round(i*(pts.length-1)/5), p=pts[idx], x=X(p.x); body+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bottom}" stroke="#252a33"/><text x="${x}" y="${labelY}" fill="#9d9a91" font-size="10.5" text-anchor="middle">${fmtCurveTickPoint(p,true)}</text>`;}
-    }
-  }
-  [ymin,0,ymax].forEach(y=>{const yy=Y(y); body+=`<line x1="${left}" y1="${yy}" x2="${right}" y2="${yy}" stroke="#252a33"/><text x="${left-8}" y="${yy+4}" fill="#9d9a91" font-size="11" text-anchor="end">${money(y)}</text>`;});
-  const activeBuckets=pts.filter(p=>p.count>0).length;
-  const subtitle = intradayMode ? `Single-day intraday 10-min exit buckets CST • flexed to first entry → last exit • ${activeBuckets} active bucket(s), ${items.length} trade(s)` : `RTH hourly exit buckets CST only • overnight gaps removed • ${activeBuckets} active hour(s), ${items.length} trade(s)`;
-  body+=`<text x="${w/2}" y="${subtitleY}" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">${subtitle}</text><text x="18" y="${midY}" fill="#9d9a91" font-size="12" font-weight="650" transform="rotate(-90 18 ${midY})" text-anchor="middle">Cumulative PnL in selected range</text><g id="curveHover" class="curveTip" style="display:none"></g>`;
-  $('curve').innerHTML=svgWrap(w,h,body);
-  const svg=$('curve').querySelector('svg'), hover=$('curveHover');
-  if(hover){
-    svg.onpointermove=e=>{const r=svg.getBoundingClientRect(), local=(e.clientX-r.left)*w/r.width, targetX=(Math.max(left,Math.min(right,local))-left)/(right-left)*span; let best=pts[0]; for(const p of pts){if(Math.abs(p.x-targetX)<Math.abs(best.x-targetX)) best=p;} const hx=X(best.x), hy=Y(best.y); const label=`${fmtCurveTickPoint(best,false)} • bucket ${money(best.delta,2)} • cum ${money(best.y,2)}`; const tx=Math.min(Math.max(hx,205),w-205); hover.style.display='block'; hover.innerHTML=`<line x1="${hx}" y1="${top}" x2="${hx}" y2="${bottom}" stroke="#ffd166" stroke-width="2"/><circle cx="${hx}" cy="${hy}" r="5" fill="#ffd166" stroke="#08090b" stroke-width="2"/><g class="curveTipBox"><rect x="${tx-195}" y="${top+8}" width="390" height="42" rx="12" fill="#111318" stroke="#ffd166"/><text x="${tx}" y="${top+34}" fill="#f4f1ea" font-size="12.5" font-weight="850" text-anchor="middle">${label}</text></g>`;};
-    svg.onpointerleave=()=>{hover.style.display='none'};
-  }
-}
-function renderCards(items){const s=summarize(items); let cum=0, peak=0, maxDD=0; items.slice().sort((a,b)=>a.seq-b.seq).forEach(t=>{cum+=t.net_pnl; peak=Math.max(peak,cum); maxDD=Math.min(maxDD,cum-peak);}); const rr=s.losses?(s.wins?(s.avgw/Math.abs(s.avgl)).toFixed(2)+':1':'0.00:1'):(s.wins?'∞:1':'n/a'); const rrVal=s.losses&&s.wins?s.avgw/Math.abs(s.avgl):null; const rrCls=rrVal==null?(s.wins?'good':''):(rrVal>=1?'good':'bad'); $('cards').innerHTML=[card('Profit Factor', s.pf==null?'n/a':s.pf.toFixed(2), s.pf>=1?'good':'bad','winning net PnL / abs(losing net PnL)'),card('Cumulative PnL',money(s.net,2),cls(s.net),scenarioActive?'scenario-adjusted net':'net, after fees'),card('Win Rate',`${s.wins} / ${s.n} = ${s.wr.toFixed(1)}%`,'','round trips'),card('Max Drawdown',money(maxDD,2),maxDD<0?'bad':'','filtered set'),card('Avg Trade',money(s.avg,2),cls(s.avg),'net per round trip'),card('Risk/Reward',rr,rrCls,'avg winner / abs(avg loser)')].join('');}
-function weekdayInfo(dateStr){
-  const dt = new Date(dateStr + 'T12:00:00');
-  const col = ((dt.getDay() + 6) % 7) + 1; // Mon=1 ... Fri=5
-  const name = dt.toLocaleDateString(undefined,{weekday:'short'});
-  const label = dt.toLocaleDateString(undefined,{month:'short',day:'numeric'});
-  return {col,name,label};
-}
-// Calendar timeframe: 'days30' (default, last 30 trading days), 'weeks'
-// (aggregate by ISO week), or 'months' (aggregate by year-month). Persisted
-// in localStorage so the card doesn't reset between visits.
-let calendarTimeframe = (typeof localStorage!=='undefined' && localStorage.getItem('tl_calTimeframe')) || 'recent';
-function setCalendarTimeframe(v){ calendarTimeframe = v; try{localStorage.setItem('tl_calTimeframe', v);}catch(e){} render(); }
-function isoWeekKey(dateStr){
-  const dt = new Date(dateStr + 'T12:00:00Z');
-  const day = (dt.getUTCDay() + 6) % 7; // Mon=0..Sun=6
-  const thu = new Date(dt); thu.setUTCDate(dt.getUTCDate() - day + 3);
-  const isoYear = thu.getUTCFullYear();
-  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
-  const jan4Day = (jan4.getUTCDay() + 6) % 7;
-  const isoWeek = 1 + Math.round(((thu - jan4) / 86400000 - 3 + jan4Day) / 7);
-  const mon = new Date(dt); mon.setUTCDate(dt.getUTCDate() - day);
-  return { key: `${isoYear}-W${String(isoWeek).padStart(2,'0')}`, start: mon.toISOString().slice(0,10) };
-}
-function groupAllDatesByPeriod(period){
-  const groups = new Map();
-  for (const d of allDates) {
-    let key, start;
-    if (period === 'weeks') { const w = isoWeekKey(d); key = w.key; start = w.start; }
-    else { key = d.slice(0,7); start = key + '-01'; }
-    if (!groups.has(key)) groups.set(key, { key, start, dates: [] });
-    groups.get(key).dates.push(d);
-  }
-  return [...groups.values()].sort((a,b)=>a.start.localeCompare(b.start));
-}
-function periodLabel(period, group){
-  const d = new Date(group.start + 'T12:00:00');
-  if (period === 'weeks') return 'Wk ' + d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
-  return d.toLocaleDateString(undefined,{month:'short',year:'2-digit'});
-}
-function buildCalendarHtml(items, mode){
-  if (calendarTimeframe === 'recent' || calendarTimeframe === 'days30') return buildDaysCalendarHtml(items, mode, 25);
-  return buildPeriodCalendarHtml(items, mode, calendarTimeframe);
-}
-function buildDaysCalendarHtml(items, mode, limit){
-  const by={};
-  trades.forEach(t=>{(by[t.exit_date] ||= []).push(t)});
-  const dates = (limit && limit < allDates.length) ? allDates.slice(-limit) : allDates;
-  const dayMetric=d=>{
-    const ds=summarize(items.filter(t=>t.exit_date===d));
-    return mode==='pct' ? ds.pct : ds.net;
-  };
-  const vals=dates.map(dayMetric);
-  const mx=Math.max(mode==='pct'?0.5:1,...vals.map(Math.abs));
-  const dows=['Mon','Tue','Wed','Thu','Fri'];
-  let html='<div class="calgrid">'+dows.map(d=>`<div class="dow">${d}</div>`).join('');
-  dates.forEach(d=>{
-    const {col,name,label}=weekdayInfo(d);
-    const dayItems=items.filter(t=>t.exit_date===d), base=by[d]||[], s=summarize(dayItems), sb=summarize(base);
-    const v = mode==='pct' ? s.pct : s.net;
-    const a=s.n ? .18+.70*Math.min(1,Math.abs(v)/mx) : .10;
-    const bg=s.n ? (v>=0?`rgba(48,209,88,${a})`:`rgba(255,69,58,${a})`) : 'rgba(19,21,26,.62)';
-    const big = !s.n ? '--' : (mode==='pct' ? pct(s.pct) : money(s.net));
-    const sub = (typeof hideCalCounts!=='undefined' && hideCalCounts) ? '' : (mode==='pct' ? `${s.n} trades • ${sb.n} day` : `${s.wins}/${s.n} filtered • ${sb.wins}/${sb.n} day`);
-    html+=`<button class="day ${selectedDays.has(d)?'selected':''}" data-date="${d}" style="grid-column:${col};background:${bg};color:#f4f1ea" title="${name} ${label}"><b>${name} ${label}</b><span>${big}</span>${sub?`<em>${sub}</em>`:''}</button>`;
-  });
-  html+='</div>';
-  return html;
-}
-function buildPeriodCalendarHtml(items, mode, period){
-  const groups = groupAllDatesByPeriod(period);
-  const summaries = groups.map(g => summarize(items.filter(t => g.dates.indexOf(t.exit_date) !== -1)));
-  const vals = summaries.map(s => mode==='pct' ? s.pct : s.net);
-  const mx = Math.max(mode==='pct'?0.5:1, ...vals.map(Math.abs));
-  const cols = period === 'weeks' ? 6 : 4;
-  let html = `<div class="calgrid" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">`;
-  groups.forEach((g,i)=>{
-    const s = summaries[i];
-    const v = mode==='pct' ? s.pct : s.net;
-    const a = s.n ? .18 + .70 * Math.min(1, Math.abs(v)/mx) : .10;
-    const bg = s.n ? (v>=0?`rgba(48,209,88,${a})`:`rgba(255,69,58,${a})`) : 'rgba(19,21,26,.62)';
-    const big = !s.n ? '--' : (mode==='pct' ? pct(s.pct) : money(s.net));
-    const sub = (typeof hideCalCounts!=='undefined' && hideCalCounts) ? '' : `${s.n} trades • ${g.dates.length}d`;
-    const allSelected = g.dates.length>0 && g.dates.every(d=>selectedDays.has(d));
-    const lbl = periodLabel(period, g);
-    html += `<button class="day ${allSelected?'selected':''}" data-period="${g.key}" data-dates="${g.dates.join(',')}" style="background:${bg};color:#f4f1ea" title="${lbl}"><b>${lbl}</b><span>${big}</span>${sub?`<em>${sub}</em>`:''}</button>`;
-  });
-  html += '</div>';
-  return html;
-}
-function wireDayClicks(rootId){
-  document.querySelectorAll('#'+rootId+' .day[data-date]').forEach(el=>el.onclick=()=>{const d=el.dataset.date; selectedDays.has(d)?selectedDays.delete(d):selectedDays.add(d); render();});
-  document.querySelectorAll('#'+rootId+' .day[data-period]').forEach(el=>el.onclick=()=>{const dates=(el.dataset.dates||'').split(',').filter(Boolean); const all=dates.every(d=>selectedDays.has(d)); dates.forEach(d=>all?selectedDays.delete(d):selectedDays.add(d)); render();});
-}
-function buildCalendarToggleHtml(){
-  const opts = [['recent','Recent'],['weeks','Weeks'],['months','Months']];
-  return `<div class="xToggle tl-cal-tf" role="tablist" style="margin-bottom:10px">` +
-    opts.map(([k,lbl])=>`<button class="xTab ${calendarTimeframe===k?'active':''}" data-tf="${k}" type="button" role="tab">${lbl}</button>`).join('') +
-    `</div>`;
-}
-function wireCalendarToggle(rootId){
-  document.querySelectorAll('#'+rootId+' .tl-cal-tf [data-tf]').forEach(b=>b.addEventListener('click',()=>setCalendarTimeframe(b.dataset.tf)));
-}
-function renderCalendar(items){
-  $('calendar').innerHTML = buildCalendarToggleHtml() + buildCalendarHtml(items,'net');
-  wireDayClicks('calendar');
-  wireCalendarToggle('calendar');
-  _wireHideCounts();
-}
-function renderPctCalendar(items){
-  if(!$('pctCalendar')) return;
-  $('pctCalendar').innerHTML = buildCalendarToggleHtml() + buildCalendarHtml(items,'pct');
-  wireDayClicks('pctCalendar');
-  wireCalendarToggle('pctCalendar');
-}
-function renderPayoff(items){const s=summarize(items), n=s.n||1; const grossWin=items.filter(t=>t.gross_pnl>0).reduce((a,t)=>a+t.gross_pnl,0)/n; const grossLoss=items.filter(t=>t.gross_pnl<0).reduce((a,t)=>a+t.gross_pnl,0)/n; const fee=s.avgFee; const avg=s.avg; const steps=[['Win contrib.',grossWin],['Loss contrib.',grossLoss],['Avg fees',fee],['Avg trade',avg]]; const isMobile=(typeof window!=='undefined')&&window.matchMedia&&window.matchMedia('(max-width: 720px)').matches; const w=760,h=isMobile?640:320,left=54,bw=120,gap=54; const vals=[0,grossWin,grossWin+grossLoss,grossWin+grossLoss+fee,avg]; const lo=Math.min(0,...vals), hi=Math.max(0,...vals), pad=(hi-lo)*.22||1; const Y=y=>42+(hi+pad-y)/(hi-lo+pad*2)*(h-96); let prev=0, body=`<line x1="36" y1="${Y(0)}" x2="724" y2="${Y(0)}" stroke="#3b414d"/>`; steps.forEach((st,i)=>{const [lab,v]=st, isTotal=i===3, start=isTotal?0:prev, end=isTotal?v:prev+v, y=Math.min(Y(start),Y(end)), ht=Math.max(3,Math.abs(Y(start)-Y(end))), x=left+i*(bw+gap), col=v>=0?'#30d158':'#ff453a'; body+=`<rect x="${x}" y="${y}" width="${bw}" height="${ht}" rx="8" fill="${col}" opacity=".9"/><text x="${x+bw/2}" y="${h-36}" text-anchor="middle" fill="#d8d2c5" font-size="13" font-weight="700">${lab}</text><text x="${x+bw/2}" y="${v>=0?y-8:y+ht+18}" text-anchor="middle" fill="${col}" font-size="13" font-weight="800">${money(v,2)}</text>`; if(!isTotal){prev=end; const nx=left+(i+1)*(bw+gap); body+=`<line x1="${x+bw}" y1="${Y(end)}" x2="${nx}" y2="${Y(end)}" stroke="#66a3ff" stroke-dasharray="4 4" opacity=".5"/>`;}}); $('payoff').innerHTML=svgWrap(w,h,body);}
-function renderHist(items){const isMobile=(typeof window!=='undefined')&&window.matchMedia&&window.matchMedia('(max-width: 720px)').matches; const vals=items.map(t=>t.pnl_pct).filter(Number.isFinite), w=760,h=isMobile?720:390,bins=18,left=54,right=724,top=24,bottom=h-72; const tickLblY=bottom+24, subtitleY=h-16, midY=Math.round(h/2); if(!vals.length){$('hist').innerHTML=svgWrap(w,h,`<text x="${w/2}" y="${midY}" fill="#9d9a91" text-anchor="middle" font-size="14" font-weight="750">No trades in selected time range</text>`);return} const mn=Math.min(...vals), mx=Math.max(...vals), span=mx-mn||1, counts=Array(bins).fill(0); vals.forEach(v=>counts[Math.min(bins-1,Math.floor((v-mn)/span*bins))]++); const m=Math.max(...counts,1), bw=(right-left)/bins; let body=`<text x="${w/2}" y="${subtitleY}" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">Trade return % buckets • ${items.length} round trips</text>`; counts.forEach((c,i)=>{const mid=mn+(i+.5)*span/bins, x=left+i*bw, bh=(bottom-top)*c/m, y=bottom-bh, col=mid>=0?'#30d158':'#ff453a'; body+=`<rect x="${x}" y="${y}" width="${Math.max(2,bw-4)}" height="${Math.max(1,bh)}" rx="5" fill="${col}" opacity=".88"/><text x="${x+bw/2}" y="${y-6}" fill="${col}" font-size="10.5" font-weight="800" text-anchor="middle">${c||''}</text>`; if(i%2===0 || i===bins-1) body+=`<text x="${x+bw/2}" y="${tickLblY}" fill="#9d9a91" font-size="10" text-anchor="middle">${mid.toFixed(0)}%</text>`;}); const zx=left+(0-mn)/span*(right-left); if(zx>=left&&zx<=right) body+=`<line x1="${zx}" y1="${top}" x2="${zx}" y2="${bottom}" stroke="#f4f1ea" opacity=".35"/><text x="${zx+4}" y="${top+12}" fill="#d8d2c5" font-size="10">0%</text>`; $('hist').innerHTML=svgWrap(w,h,body);}
-function renderTables(items){const sessions=['Morning','Midday','Power hour','End of day','Outside RTH']; let th='<table><thead><tr><th>Session</th><th>Trades</th><th>Win rate</th><th>PF</th><th>PnL %</th></tr></thead><tbody>'; sessions.forEach(k=>{const s=summarize(items.filter(t=>sessionBucket(t.entry_dt)===k)); th+=`<tr><td>${k}</td><td>${s.n}</td><td>${s.wins}/${s.n} = ${s.wr.toFixed(1)}%</td><td class="${s.pf>=1?'good':'bad'}">${s.pf==null?'n/a':s.pf.toFixed(2)}</td><td class="${cls(s.pct)}">${pct(s.pct)}</td></tr>`;}); $('sessions').innerHTML=th+'</tbody></table>'; const hours=[7,8,9,10,11,12,13,14,15]; $('hours').innerHTML='<div class="mini">'+hours.map(h=>{const s=summarize(items.filter(t=>cstHM(t.entry_dt).h===h)); return `<div class="hour" style="background:${s.net>=0?'rgba(48,209,88,.11)':'rgba(255,69,58,.11)'}"><b>${h}:00 CST</b><span>${s.n} trades</span><span class="${cls(s.net)}">${money(s.net)}</span></div>`}).join('')+'</div>';}
-function renderStreak(){const base=currentBaseTrades(); $('streak').innerHTML='<div class="ticks">'+trades.map(t=>`<span class="tick ${t.net_pnl>0?'w':'l'} ${base.includes(t)?'':'excluded'}"></span>`).join('')+'</div>';}
-function renderScenario(base, effective){const universe=axisBaseTrades(); const baseline=summarize(universe); const adjusted=summarize(effective); const moved=effective.filter(t=>t.scenario_moved); const excluded=universe.length-base.length; const eligible=base.filter(t=>t.pnl_pct < thresholdPct); if(scenarioActive){const filterPart=excluded>0?`${excluded} trade(s) filtered out + `:''; $('scenarioPanel').innerHTML=`<b>Scenario active:</b> ${filterPart}${moved.length} trade(s) moved up to ${pct(thresholdPct)}. Adjusted PnL ${money(adjusted.net,2)} vs baseline ${money(baseline.net,2)}. Impact: <b class="${cls(adjusted.net-baseline.net)}">${money(adjusted.net-baseline.net,2)}</b>. PF ${baseline.pf?baseline.pf.toFixed(2):'n/a'} → ${adjusted.pf?adjusted.pf.toFixed(2):'n/a'}.`; } else {$('scenarioPanel').innerHTML=`Loss line: <b>${pct(thresholdPct)}</b>. ${eligible.length} visible trade(s) are below the line. Box-select dots, then click <b>Move below line to line</b> to model better stops.`;}}
-function quantile(arr,q){if(!arr.length)return 0; const a=arr.slice().sort((x,y)=>x-y), pos=(a.length-1)*q, lo=Math.floor(pos), hi=Math.ceil(pos); return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(pos-lo);}
-function niceStepFor(span,targetTicks=5){const raw=Math.max(1e-9,span/targetTicks), pow=Math.pow(10,Math.floor(Math.log10(raw))), bases=[1,2,2.5,5,10]; for(const b of bases){if(b*pow>=raw)return b*pow;} return 10*pow;}
-function computeScatterRange(baseItems){
-  const activePcts=baseItems.map(t=>{const moved=scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct; return moved?thresholdPct:t.pnl_pct;});
-  const fullMin=activePcts.length ? Math.min(...activePcts) : -50, fullMax=activePcts.length ? Math.max(...activePcts) : 50;
-  let dMin = activePcts.length>=20 ? quantile(activePcts,.03) : fullMin;
-  let dMax = activePcts.length>=20 ? quantile(activePcts,.97) : fullMax;
-  dMin = Math.min(dMin, thresholdPct, 0); dMax = Math.max(dMax, thresholdPct, 0);
-  const range=Math.max(20,dMax-dMin), pad=range*.16; let lo=dMin-pad, hi=dMax+pad;
-  const step=niceStepFor(hi-lo,5); lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step;
-  const ticks=[]; for(let v=lo; v<=hi+0.0001; v+=step) ticks.push(Math.round(v*1000)/1000);
-  return {lo,hi,step,ticks,fullMin,fullMax,clippedLow:fullMin<lo,clippedHigh:fullMax>hi};
-}
-function computeDurationCap(baseItems){const ds=baseItems.map(t=>t.duration_min||0).filter(Number.isFinite); if(!ds.length)return 60; const q=ds.length>=20?quantile(ds,.95):Math.max(...ds); return Math.max(60, Math.ceil(q/30)*30);}
-function renderScatter(baseItems){
-  const isMobile=(typeof window!=='undefined')&&window.matchMedia&&window.matchMedia('(max-width: 720px)').matches;
-  const w=760, h=isMobile?820:500, left=72, right=700, top=28, bottom=h-72;
-  const xTickLblY=bottom+22, xTitleY=h-16, midY=Math.round(h/2);
-  const rangeObj = computeScatterRange(baseItems), {lo:yLo, hi:yHi, ticks:yTicks} = rangeObj;
-  const Y=y=>top+(yHi-Math.max(yLo,Math.min(yHi,y)))/(yHi-yLo)*(bottom-top);
-  const pctFromY=py=>yHi-(py-top)/(bottom-top)*(yHi-yLo);
-  const axisBase=axisBaseTrades();
-  let X, xValueOf, xLabel, axisBody='', xClampedOf;
-  if(scatterXMode==='time'){
-    const tr=computeTimeRange(axisBase), xLo=tr.lo, xHi=tr.hi, xSpan=Math.max(1,xHi-xLo);
-    X=v=>left+(Math.max(xLo,Math.min(xHi,v))-xLo)/xSpan*(right-left);
-    xValueOf=t=>cstMinutes(t.entry_dt);
-    xClampedOf=v=>v<xLo||v>xHi;
-    xLabel=`Entry time (CT) — fixed ${fmtMin(xLo)} → ${fmtMin(xHi)} for current scope. Y viewport uses p3-p97 so outliers do not flatten the cluster.`;
-    tr.ticks.forEach(m=>{axisBody+=`<line x1="${X(m)}" y1="${top}" x2="${X(m)}" y2="${bottom}" stroke="#2a2e36"/><text x="${X(m)}" y="${xTickLblY}" fill="#9d9a91" font-size="11" text-anchor="middle">${fmtMin(m)}</text>`;});
-  } else {
-    const xCap=computeDurationCap(axisBase);
-    X=v=>left+Math.min(v,xCap)/xCap*(right-left);
-    xValueOf=t=>t.duration_min||0;
-    xClampedOf=v=>v>xCap;
-    xLabel=`Hold duration in minutes; right edge caps trades ≥ ${xCap}m. Y viewport uses p3-p97 so outliers do not flatten the cluster.`;
-    const xTicks=[0,xCap*.25,xCap*.5,xCap*.75,xCap].map(v=>Math.round(v/5)*5);
-    [...new Set(xTicks)].forEach(x=>{axisBody+=`<line x1="${X(x)}" y1="${top}" x2="${X(x)}" y2="${bottom}" stroke="#2a2e36"/><text x="${X(x)}" y="${xTickLblY}" fill="#9d9a91" font-size="11" text-anchor="middle">${x===xCap?'≥':''}${x}m</text>`;});
-  }
-  let body=`<text x="${w/2}" y="${xTitleY}" fill="#9d9a91" font-size="12" font-weight="650" text-anchor="middle">${xLabel}</text><text x="18" y="${midY}" fill="#9d9a91" font-size="12" font-weight="650" transform="rotate(-90 18 ${midY})" text-anchor="middle">Trade return %</text>`;
-  body+=axisBody;
-  yTicks.forEach(y=>{body+=`<line x1="${left}" y1="${Y(y)}" x2="${right}" y2="${Y(y)}" stroke="#2a2e36"/><text x="${left-8}" y="${Y(y)+4}" fill="#9d9a91" font-size="11" text-anchor="end">${Math.round(y)}%</text>`;});
-  if(rangeObj.clippedHigh) body+=`<text x="${right}" y="${top+12}" fill="#9d9a91" font-size="10.5" text-anchor="end">▲ max ${Math.round(rangeObj.fullMax)}%</text>`;
-  if(rangeObj.clippedLow) body+=`<text x="${right}" y="${bottom-8}" fill="#9d9a91" font-size="10.5" text-anchor="end">▼ min ${Math.round(rangeObj.fullMin)}%</text>`;
-  const ty=Y(thresholdPct), handleX=right-122;
-  body+=`<line class="thresholdLine" x1="${left}" y1="${ty}" x2="${right}" y2="${ty}" stroke="#ffd166" stroke-width="2.5" stroke-dasharray="8 6" style="cursor:crosshair;pointer-events:none"/><rect class="thresholdHandle" x="${handleX}" y="${Math.max(top+2,Math.min(bottom-36,ty-18))}" width="116" height="34" rx="17" fill="#ffd166" stroke="#08090b" stroke-width="1.5" style="cursor:ns-resize;pointer-events:all"/><text class="thresholdLabel" x="${handleX+58}" y="${Math.max(top+24,Math.min(bottom-14,ty+4))}" fill="#08090b" font-size="12" font-weight="900" text-anchor="middle" style="pointer-events:none">↕ ${pct(thresholdPct)}</text>`;
-  trades.forEach(t=>{const xRaw=xValueOf(t); if(!Number.isFinite(xRaw)) return; const active=baseItems.includes(t), moved=scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct, rawY=moved?thresholdPct:t.pnl_pct, yVal=Math.max(yLo,Math.min(yHi,rawY)), selected=pendingSelection.has(t.id) || (scatterMode!=='none' && scatterIds.has(t.id)) || moved, col=moved?'#ffd166':(t.net_pnl>=0?'#30d158':'#ff453a'), r=(window.tlBubbles?Math.max(1.5,Math.min(14,Math.sqrt(Math.abs(t.net_pnl||0))*0.55)):(3.2+Math.min(5.5,Math.sqrt(Math.max(t.entry_gross_cost,0))/24))), cy=Y(yVal), cx=X(xRaw), edge=(rawY!==yVal) || xClampedOf(xRaw); const xTip = scatterXMode==='time' ? `entry ${cstTimeLabel(t.entry_dt)}` : `${Math.round(t.duration_min||0)}m`; body+=`<circle class="dot" data-id="${t.id}" data-active="${active?1:0}" cx="${cx}" cy="${cy}" r="${selected?r+2:r}" fill="${selected?'#fff':col}" stroke="${edge?'#f4f1ea':(moved?'#ffd166':'none')}" stroke-width="${edge||moved?1.5:0}" opacity="${active?'.84':'.08'}"><title>${t.symbol} ${t.entry_time} → ${t.exit_time} | ${money(t.net_pnl,2)} | ${pct(t.pnl_pct)} | ${xTip}${edge?' | edge-clamped':''}${moved?' moved to '+pct(thresholdPct):''}</title></circle>`;});
-  $('scatter').innerHTML=svgWrap(w,h,body);
-  wireScatterBox({top,bottom,Y,pctFromY,yLo,yHi,w,h,right});
-}
-function wireScatterBox(scale){
-  const wrap=document.querySelector('.scatter-wrap'), svg=$('scatter').querySelector('svg'), box=$('selectionBox');
-  svg.style.touchAction='none';
-  let start=null, draggingLine=false, rafPending=false, lastY=0;
-  function scheduleRender(){ if(rafPending) return; rafPending=true; requestAnimationFrame(()=>{ rafPending=false; render(); }); }
-  function onMove(e){
-    const r=wrap.getBoundingClientRect();
-    if(draggingLine){
-      lastY=e.clientY;
-      const localY=(e.clientY-r.top)*(scale.h||390)/r.height;
-      const raw=scale.pctFromY(localY);
-      const clamped=Math.max(scale.yLo, Math.min(scale.yHi, raw));
-      thresholdPct=Math.round(clamped);
-      scheduleRender();
-      return;
-    }
-    if(!start) return;
-    const x=e.clientX-r.left, y=e.clientY-r.top;
-    Object.assign(box.style,{left:Math.min(start.x,x)+'px',top:Math.min(start.y,y)+'px',width:Math.abs(x-start.x)+'px',height:Math.abs(y-start.y)+'px'});
-  }
-  function onUp(){
-    document.removeEventListener('pointermove', onMove);
-    document.removeEventListener('pointerup', onUp);
-    document.removeEventListener('pointercancel', onUp);
-    if(draggingLine){ draggingLine=false; render(); return; }
-    if(!start) return;
-    const br=box.getBoundingClientRect();
-    pendingSelection.clear();
-    // Re-query the current SVG (may have been replaced by a render mid-drag).
-    const liveSvg=$('scatter').querySelector('svg');
-    liveSvg.querySelectorAll('.dot[data-active="1"]').forEach(dot=>{
-      const dr=dot.getBoundingClientRect();
-      const cx=dr.left+dr.width/2, cy=dr.top+dr.height/2;
-      if(cx>=br.left&&cx<=br.right&&cy>=br.top&&cy<=br.bottom) pendingSelection.add(dot.dataset.id);
-    });
-    start=null; box.style.display='none';
-    $('selectionCount').textContent=pendingSelection.size?`${pendingSelection.size} dots selected`:'No dots selected';
-    render();
-  }
-  svg.onpointerdown=e=>{
-    const r=wrap.getBoundingClientRect(),
-          sx=r.width/(scale.w||760),
-          sy=scale.Y(thresholdPct)*r.height/(scale.h||390);
-    const x=e.clientX-r.left, y=e.clientY-r.top;
-    const hx1=((scale.right||700)-130)*sx, hx2=((scale.right||700)+8)*sx;
-    const onHandle=x>=hx1&&x<=hx2&&Math.abs(y-sy)<34;
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
-    if(onHandle){
-      draggingLine=true;
-      e.preventDefault();
-      return;
-    }
-    start={x,y};
-    box.style.display='block';
-    box.style.left=start.x+'px';
-    box.style.top=start.y+'px';
-    box.style.width='0px';
-    box.style.height='0px';
-  };
-}
-function updatePills(base){ if($('filterStatus')) $('filterStatus').textContent=`Showing ${base.length} / ${trades.length} round trips${scenarioActive?' • scenario adjusted':''}`; }
-function fmtMin(m){const h=Math.floor(m/60), mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');}
-function computeTimeRange(baseItems){
-  const mins=baseItems.map(t=>cstMinutes(t.entry_dt)).filter(Number.isFinite);
-  if(!mins.length) return {lo:8*60+30, hi:15*60, ticks:[9*60,10*60,11*60,12*60,13*60,14*60,15*60]};
-  let lo=Math.min(...mins), hi=Math.max(...mins);
-  const range=Math.max(30, hi-lo), pad=Math.max(15, range*0.06);
-  lo=Math.max(0, Math.floor((lo-pad)/15)*15);
-  hi=Math.min(24*60-1, Math.ceil((hi+pad)/15)*15);
-  const span=hi-lo;
-  const step = span<=90?15 : span<=240?30 : span<=480?60 : 120;
-  const ticks=[]; let start = Math.ceil(lo/step)*step;
-  for(let v=start; v<=hi; v+=step) ticks.push(v);
-  return {lo,hi,ticks};
-}
-function render(){const base=currentBaseTrades(); const effective=applyScenario(base); renderCards(effective); renderCalendar(effective); renderPctCalendar(effective); renderScatter(base); renderCurve(effective); renderPayoff(effective); renderHist(effective); renderTables(effective); renderStreak(); renderScenario(base,effective); updatePills(base);}
-$('includeSelection').onclick=()=>{if(!pendingSelection.size)return; scatterIds=new Set(pendingSelection); scatterMode='include'; pendingSelection.clear(); $('selectionCount').textContent='Active include filter applied'; render();};
-$('excludeSelection').onclick=()=>{if(!pendingSelection.size)return; scatterIds=new Set(pendingSelection); scatterMode='exclude'; pendingSelection.clear(); $('selectionCount').textContent='Active exclude filter applied'; render();};
-$('moveBelowLine').onclick=()=>{const base=currentBaseTrades(); const candidateIds=pendingSelection.size?pendingSelection:new Set(base.map(t=>t.id)); scenarioIds=new Set([...candidateIds].filter(id=>{const t=trades.find(x=>x.id===id); return t && base.includes(t) && t.pnl_pct < thresholdPct;})); scenarioActive=scenarioIds.size>0; pendingSelection.clear(); $('selectionCount').textContent=scenarioActive?`Scenario moved ${scenarioIds.size} dots`:'No selected/visible dots below line'; render();};
-$('clearScenario').onclick=()=>{scenarioActive=false; scenarioIds.clear(); pendingSelection.clear(); scatterMode='none'; scatterIds.clear(); if($('selectionCount')) $('selectionCount').textContent='No dots selected'; render();};
-document.querySelectorAll('#scatterPanel .xTab').forEach(btn=>btn.onclick=()=>{scatterXMode=btn.dataset.x; document.querySelectorAll('#scatterPanel .xTab').forEach(b=>b.classList.toggle('active', b.dataset.x===scatterXMode)); render();});
-document.querySelectorAll('#sessToggle .xTab').forEach(btn=>btn.onclick=()=>{sessionMode=btn.dataset.session; document.querySelectorAll('#sessToggle .xTab').forEach(b=>b.classList.toggle('active', b.dataset.session===sessionMode)); render();});
-$('resetAll').onclick=()=>{
-  selectedDays.clear();
-  scatterMode='none'; scatterIds.clear(); pendingSelection.clear();
-  scatterXMode='duration'; document.querySelectorAll('#scatterPanel .xTab').forEach(b=>b.classList.toggle('active', b.dataset.x==='duration'));
-  sessionMode='rth'; document.querySelectorAll('#sessToggle .xTab').forEach(b=>b.classList.toggle('active', b.dataset.session==='rth'));
-  scenarioActive=false; scenarioIds.clear();
-  rangeStart=null; rangeEnd=null; rangePreset=null;
-  thresholdPct=-51;
-  if($('selectionCount')) $('selectionCount').textContent='No dots selected';
-  refreshDateRangeLabel();
-  render();
-};
-document.querySelectorAll('.expand').forEach(btn=>btn.onclick=()=>{const panel=btn.closest('.panel'); $('modalContent').innerHTML='<h2>'+panel.querySelector('h2').textContent+'</h2><div class="hint">Expanded read-only view. Use controls on the main chart to filter.</div>'+panel.innerHTML.replace(/<button class="expand">Expand<\/button>/,''); $('modalContent').querySelectorAll('[id]').forEach(el=>el.removeAttribute('id')); $('modalContent').querySelectorAll('button').forEach(el=>el.remove()); $('modal').classList.add('open');});
-$('closeModal').onclick=()=> $('modal').classList.remove('open');
-$('modal').onclick=e=>{if(e.target.id==='modal') $('modal').classList.remove('open');};
-// ----- Date-range popover wiring -----
-// Single popover with quick-pick shortcuts (Today, Last 7 days, This week,
-// This month, Last 30 days, All time) plus a custom Date input range. The
-// previous two `datetime-local` pickers + 3 status pills are gone in favor
-// of this consolidated UI.
-const PRESET_LABELS = { today:'Today', last7:'Last 7 days', thisweek:'This week', thismonth:'This month', last30:'Last 30 days', all:'All time' };
-function _startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0).getTime(); }
-function _endOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999).getTime(); }
-function applyRangePreset(preset){
-  const now = new Date();
-  const sToday = _startOfDay(now), eToday = _endOfDay(now);
-  if (preset === 'today') { rangeStart = sToday; rangeEnd = eToday; }
-  else if (preset === 'last7') { rangeStart = sToday - 6*86400000; rangeEnd = eToday; }
-  else if (preset === 'last30') { rangeStart = sToday - 29*86400000; rangeEnd = eToday; }
-  else if (preset === 'thisweek') { const dow = (now.getDay() + 6) % 7; rangeStart = sToday - dow*86400000; rangeEnd = eToday; }
-  else if (preset === 'thismonth') { rangeStart = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0).getTime(); rangeEnd = eToday; }
-  else { rangeStart = null; rangeEnd = null; }
-  rangePreset = preset;
-  refreshDateRangeLabel();
-  render();
-}
-function refreshDateRangeLabel(){
-  const lbl = $('dateRangeLabel'); if (!lbl) return;
-  if (rangePreset && PRESET_LABELS[rangePreset]) { lbl.textContent = PRESET_LABELS[rangePreset]; return; }
-  if (rangeStart == null && rangeEnd == null) { lbl.textContent = 'All time'; return; }
-  const fmt = ms => new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
-  lbl.textContent = `${rangeStart?fmt(rangeStart):'start'} → ${rangeEnd?fmt(rangeEnd):'end'}`;
-}
-function openDateRangePopover(){
-  const pop = $('dateRangePopover'); if (!pop) return;
-  pop.hidden = false;
-  const dateStr = ms => ms ? new Date(ms - new Date(ms).getTimezoneOffset()*60000).toISOString().slice(0,10) : '';
-  if ($('dr-from')) $('dr-from').value = dateStr(rangeStart);
-  if ($('dr-to')) $('dr-to').value = dateStr(rangeEnd);
-  pop.querySelectorAll('.dr-shortcut').forEach(b => b.classList.toggle('active', b.dataset.preset === (rangePreset || (rangeStart==null && rangeEnd==null ? 'all' : ''))));
-  const btn = $('dateRangeBtn'); if (btn) btn.setAttribute('aria-expanded', 'true');
-}
-function closeDateRangePopover(){
-  const pop = $('dateRangePopover'); if (!pop) return;
-  pop.hidden = true;
-  const btn = $('dateRangeBtn'); if (btn) btn.setAttribute('aria-expanded', 'false');
-}
-if ($('dateRangeBtn')) $('dateRangeBtn').onclick = openDateRangePopover;
-document.querySelectorAll('#dateRangePopover .dr-shortcut').forEach(b => b.onclick = () => { applyRangePreset(b.dataset.preset); closeDateRangePopover(); });
-document.querySelectorAll('#dateRangePopover [data-dr-close]').forEach(el => el.addEventListener('click', closeDateRangePopover));
-const drApplyBtn = document.querySelector('#dateRangePopover .dr-apply');
-if (drApplyBtn) drApplyBtn.onclick = () => {
-  const from = $('dr-from').value, to = $('dr-to').value;
-  rangeStart = from ? new Date(from + 'T00:00:00').getTime() : null;
-  rangeEnd = to ? new Date(to + 'T23:59:59.999').getTime() : null;
-  rangePreset = (rangeStart == null && rangeEnd == null) ? 'all' : null;
-  refreshDateRangeLabel();
-  closeDateRangePopover();
-  render();
-};
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDateRangePopover(); });
-refreshDateRangeLabel();
-// ----- Perf: memoize tz parses (Intl.DateTimeFormat is expensive) + rAF-debounce render -----
-// Each trade timestamp is hit by many chart renderers; without memo we pay
-// Intl.DateTimeFormat construction on every call. Cache keys are the raw
-// "YYYY-MM-DD HH:MM:SS" strings from the trade payload.
-(function(){
-  const _ms=new Map(), _hm=new Map(), _min=new Map(), _sess=new Map(), _lbl=new Map();
-  const _oPM=parseSourceMs, _oHM=cstHM, _oMin=cstMinutes, _oSess=sessionBucket, _oLbl=cstTimeLabel;
-  parseSourceMs=function(s){ if(typeof s!=='string') return _oPM(s); let v=_ms.get(s); if(v===undefined){v=_oPM(s); _ms.set(s,v);} return v; };
-  cstHM=function(s){ if(typeof s!=='string') return _oHM(s); let v=_hm.get(s); if(v===undefined){v=_oHM(s); _hm.set(s,v);} return v; };
-  cstMinutes=function(s){ if(typeof s!=='string') return _oMin(s); let v=_min.get(s); if(v===undefined){v=_oMin(s); _min.set(s,v);} return v; };
-  sessionBucket=function(s){ if(typeof s!=='string') return _oSess(s); let v=_sess.get(s); if(v===undefined){v=_oSess(s); _sess.set(s,v);} return v; };
-  cstTimeLabel=function(s){ if(typeof s!=='string') return _oLbl(s); let v=_lbl.get(s); if(v===undefined){v=_oLbl(s); _lbl.set(s,v);} return v; };
-  // Coalesce rapid filter clicks (eg. dragging the threshold line) into one render per frame.
-  const _oR=render; let _scheduled=false;
-  render=function(){ if(_scheduled) return; _scheduled=true; requestAnimationFrame(()=>{_scheduled=false; _oR();}); };
-})();
-render();
 
-// Bubble mode (added by cards refactor).
-(function(){var b=document.getElementById('bubbleToggle'); if(!b) return;
-  function sync(){b.classList.toggle('active', !!window.tlBubbles);}
-  b.addEventListener('click', function(){window.tlBubbles = !window.tlBubbles; sync(); if(typeof render==='function') render();});
-  sync();
-})();
+*, *::before, *::after { box-sizing: border-box; }
 
-</script>
-<script src="/assets/cards.js?v=carousel7" defer></script>
-</body></html>
+body {
+  background: var(--rose-bg) !important;
+  color: var(--rose-text) !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  margin: 0;
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────────── */
+nav, header, .nav, .navbar, #nav {
+  background: var(--rose-card) !important;
+  border-bottom: 1px solid var(--rose-border) !important;
+}
+
+nav a, header a, .nav a {
+  color: var(--rose-text) !important;
+}
+
+nav a:hover, header a:hover, .nav a:hover,
+nav a.active, header a.active {
+  color: var(--rose-purple) !important;
+}
+
+/* ── Cards & Containers ────────────────────────────────────────────────────── */
+.card, .panel, .box, .container, .stat-card,
+[class*="card"], [class*="panel"], [class*="box"],
+table, .table-container {
+  background: var(--rose-card) !important;
+  border: 1px solid var(--rose-border) !important;
+  border-radius: 8px !important;
+}
+
+/* ── Typography ────────────────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--rose-purple) !important;
+}
+
+p, span, label, td, th, li {
+  color: var(--rose-text) !important;
+}
+
+.text-muted, .subtitle, .label, .caption,
+[class*="muted"], [class*="secondary"] {
+  color: var(--rose-text-dim) !important;
+}
+
+/* ── Tables ────────────────────────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead, th {
+  background: #13152080 !important;
+  color: var(--rose-purple) !important;
+  border-bottom: 1px solid var(--rose-border) !important;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--rose-border) !important;
+}
+
+tbody tr:hover {
+  background: #1C1E2D88 !important;
+}
+
+td {
+  color: var(--rose-text) !important;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+button, .btn, [class*="btn"], input[type="submit"], input[type="button"] {
+  background: var(--rose-blue) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  transition: opacity 0.15s !important;
+}
+
+button:hover, .btn:hover {
+  opacity: 0.85 !important;
+}
+
+button.secondary, .btn-secondary, .btn-outline {
+  background: transparent !important;
+  border: 1px solid var(--rose-border) !important;
+  color: var(--rose-text) !important;
+}
+
+/* ── Inputs ────────────────────────────────────────────────────────────────── */
+input, select, textarea {
+  background: #13152080 !important;
+  border: 1px solid var(--rose-border) !important;
+  border-radius: 6px !important;
+  color: var(--rose-text) !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: var(--rose-purple) !important;
+}
+
+/* ── P&L Colors ────────────────────────────────────────────────────────────── */
+.positive, .profit, .gain, .win,
+[class*="positive"], [class*="profit"], [class*="green"] {
+  color: var(--rose-green) !important;
+}
+
+.negative, .loss, [class*="negative"], [class*="loss"], [class*="red"] {
+  color: var(--rose-red) !important;
+}
+
+/* ── Charts ────────────────────────────────────────────────────────────────── */
+canvas {
+  filter: brightness(1.05);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--rose-bg); }
+::-webkit-scrollbar-thumb { background: var(--rose-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rose-purple); }
+
+/* ── Links ─────────────────────────────────────────────────────────────────── */
+a { color: var(--rose-purple) !important; text-decoration: none !important; }
+a:hover { color: var(--rose-blue) !important; }
+
+/* ── Modal / Overlay ───────────────────────────────────────────────────────── */
+.modal, .overlay, .dialog, [class*="modal"] {
+  background: var(--rose-card) !important;
+  border: 1px solid var(--rose-border) !important;
+  border-radius: 12px !important;
+}
+
+.modal-backdrop, .overlay-bg {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* ── Progress / Stats ──────────────────────────────────────────────────────── */
+progress::-webkit-progress-bar { background: var(--rose-border); border-radius: 3px; }
+progress::-webkit-progress-value { background: var(--rose-purple); border-radius: 3px; }
+
+/* ── Misc ──────────────────────────────────────────────────────────────────── */
+hr, .divider { border-color: var(--rose-border) !important; }
+code, pre { background: #13152080 !important; color: var(--rose-purple) !important; }
