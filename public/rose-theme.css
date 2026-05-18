@@ -92,7 +92,7 @@ td {
 }
 
 /* ── Buttons ───────────────────────────────────────────────────────────────── */
-button, .btn, [class*="btn"], input[type="submit"], input[type="button"] {
+.btn, [class*="btn"], input[type="submit"], input[type="button"] {
   background: var(--rose-blue) !important;
   color: #fff !important;
   border: none !important;
@@ -171,3 +171,12 @@ progress::-webkit-progress-value { background: var(--rose-purple); border-radius
 /* ── Misc ──────────────────────────────────────────────────────────────────── */
 hr, .divider { border-color: var(--rose-border) !important; }
 code, pre { background: #13152080 !important; color: var(--rose-purple) !important; }
+
+/* Calendar day cells — let JS inline styles control background */
+button.day:not(.empty) {
+  background: unset !important;
+  color: #f4f1ea !important;
+}
+button:not(.day):not(.xTab):not(.expand):not(.close) {
+  background: var(--rose-blue) !important;
+}
