@@ -595,7 +595,9 @@ function openCsvWizard() {
       reader.onload = () => setCsv(String(reader.result || ''), f.name);
       reader.readAsText(f);
     });
-    drop.addEventListener('click', (e) => { if (e.target.tagName !== 'INPUT') fileInput.click(); });
+    // No manual click handler — the <label> already forwards clicks to the
+    // wrapped <input type=file>. Adding fileInput.click() here caused the
+    // OS file picker to open a second time after the user picked a file.
     drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
     drop.addEventListener('drop', (e) => {
