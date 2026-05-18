@@ -91,8 +91,13 @@ td {
   color: var(--rose-text) !important;
 }
 
-/* ── Buttons ───────────────────────────────────────────────────────────────── */
-.btn, [class*="btn"], input[type="submit"], input[type="button"] {
+/* ── Buttons — exclude calendar day cells ──────────────────────────────────── */
+/* Only apply blue background to .btn class and action buttons, NOT .day buttons */
+.btn, .pill.action, input[type="submit"], input[type="button"],
+button.pill.action, button#clearDays, button#clearSelection,
+button#resetAll, button#applyRange, button#clearRange,
+button#includeSelection, button#excludeSelection,
+button#moveBelowLine, button#clearScenario {
   background: var(--rose-blue) !important;
   color: #fff !important;
   border: none !important;
@@ -103,14 +108,44 @@ td {
   transition: opacity 0.15s !important;
 }
 
-button:hover, .btn:hover {
+button.pill.action:hover {
   opacity: 0.85 !important;
 }
 
-button.secondary, .btn-secondary, .btn-outline {
-  background: transparent !important;
-  border: 1px solid var(--rose-border) !important;
+/* Calendar day cells — let JavaScript inline styles control the background */
+button.day {
+  background: unset !important;
+  color: #f4f1ea !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 16px !important;
+  padding: 12px !important;
+}
+
+button.day.empty {
+  background: rgba(19,21,26,.62) !important;
+  color: #696b70 !important;
+}
+
+/* Expand buttons on panels */
+button.expand {
+  background: var(--rose-card) !important;
   color: var(--rose-text) !important;
+  border: 1px solid var(--rose-border) !important;
+  border-radius: 999px !important;
+  padding: 8px 11px !important;
+  font-size: 12px !important;
+}
+
+button.expand:hover {
+  border-color: var(--rose-purple) !important;
+  color: #fff !important;
+}
+
+/* Close button in modal */
+button.close {
+  background: var(--rose-card) !important;
+  color: var(--rose-text) !important;
+  border: 1px solid var(--rose-border) !important;
 }
 
 /* ── Inputs ────────────────────────────────────────────────────────────────── */
@@ -129,14 +164,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ── P&L Colors ────────────────────────────────────────────────────────────── */
-.positive, .profit, .gain, .win,
-[class*="positive"], [class*="profit"], [class*="green"] {
-  color: var(--rose-green) !important;
-}
-
-.negative, .loss, [class*="negative"], [class*="loss"], [class*="red"] {
-  color: var(--rose-red) !important;
-}
+.good { color: var(--rose-green) !important; }
+.bad  { color: var(--rose-red) !important; }
 
 /* ── Charts ────────────────────────────────────────────────────────────────── */
 canvas {
@@ -171,12 +200,3 @@ progress::-webkit-progress-value { background: var(--rose-purple); border-radius
 /* ── Misc ──────────────────────────────────────────────────────────────────── */
 hr, .divider { border-color: var(--rose-border) !important; }
 code, pre { background: #13152080 !important; color: var(--rose-purple) !important; }
-
-/* Calendar day cells — let JS inline styles control background */
-button.day:not(.empty) {
-  background: unset !important;
-  color: #f4f1ea !important;
-}
-button:not(.day):not(.xTab):not(.expand):not(.close) {
-  background: var(--rose-blue) !important;
-}
