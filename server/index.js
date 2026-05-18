@@ -11,6 +11,7 @@ import { renderOverall, renderToday, renderCsv } from './template.js';
 import { buildChartPayload } from './chartData.js';
 import { settlementPrice } from './settlement.js';
 import { computeDoctor } from './doctor.js';
+import webullSyncRouter from './webullSync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -19,9 +20,6 @@ const PORT = process.env.PORT || 4173;
 app.set('trust proxy', 1);
 
 // ---------- security headers ----------
-// CSP allows inline scripts because the legacy dashboard HTML embeds inline
-// blocks (the trade-data JSON injection + chart-rendering code). 'unsafe-inline'
-// is the price of preserving that contract; tightening to nonces is tech debt.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -43,9 +41,6 @@ app.use(helmet({
 app.use(express.json({ limit: '5mb' }));
 
 // ---------- pages ----------
-// TradeLab is a single-user app. The DB lives on disk wherever TRADELAB_DATA_DIR
-// (or TRADELAB_DB) points — typically the user's own machine. No accounts, no
-// sessions, no login.
 function html(res) {
   res.set('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.type('html');
@@ -56,7 +51,7 @@ app.get(/^\/today\/?$/,       (req, res) => { html(res); res.send(renderToday())
 app.get(['/manage', '/trades'], (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'manage.html')));
 app.get('/doctor',            (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'doctor.html')));
 
-// Dynamic SPX chart data — replaces the legacy per-day static JSON file.
+// Dynamic SPX chart data
 app.get(/^\/data\/interactive-charts\/SPX_(\d{4}-\d{2}-\d{2})_(\d+m)_trade_arrows\.json$/, async (req, res) => {
   const date = req.params[0], tf = req.params[1];
   try {
@@ -73,6 +68,9 @@ app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['htm
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// ---------- Webull sync ----------
+app.use('/api/sync', webullSyncRouter);
 
 // ---------- helpers ----------
 function fetchExecutionsByTrade(tradeIds) {
@@ -263,7 +261,6 @@ app.delete('/api/trades', (req, res) => {
 });
 
 // ---------- CSV import ----------
-// preview=1 (or dryRun=1) returns the proposed trades without committing.
 app.post('/api/trades/import', upload.single('file'), async (req, res) => {
   try {
     const text = req.file ? req.file.buffer.toString('utf8') : (req.body?.csv || '');
@@ -404,8 +401,6 @@ app.get('/api/metrics/overall', (req, res) => {
 
 app.get('/api/metrics/daily/:date', (req, res) => {
   const date = req.params.date;
-  // Daily attribution = exit date. Overnight trades realize their P/L on the
-  // session they close in, matching broker statements.
   const trades = allEnrichedTrades('WHERE substr(exit_dt,1,10) = ?', [date]);
   const summary = summarize(trades);
 
@@ -493,11 +488,10 @@ app.get('/api/doctor', (req, res) => {
 });
 
 app.get('/api/dates', (req, res) => {
-  // Trading session dates = days with at least one closed trade (by exit date).
   const rows = db.prepare(`SELECT DISTINCT substr(exit_dt,1,10) AS d FROM trades WHERE exit_dt IS NOT NULL ORDER BY d DESC`).all();
   res.json({ dates: rows.map(r => r.d) });
 });
 
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`tradelab listening on http://127.0.0.1:${PORT}`);
 });
