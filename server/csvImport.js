@@ -13,20 +13,26 @@ function normalizeHeader(h) {
   return String(h || '').toLowerCase().trim().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
 }
 
+// Normalize broker-export timestamps to minute precision (YYYY-MM-DDTHH:MM:00).
+// Different broker CSVs emit different precisions for the same underlying fill —
+// minute-only ("5/18/2026 14:59") vs second ("2026-05-18 14:59:13") — and the
+// dedup key is an exact entry_dt/exit_dt string match. Truncating to the
+// minute keeps re-imports of the same trades from sneaking past dedup.
 function toISO(s) {
   if (!s) return null;
   const v = String(s).trim();
   if (!v) return null;
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return v;
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(v)) return v.replace(' ', 'T');
+  const truncate = (iso) => iso.slice(0, 16) + ':00';
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return truncate(v);
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(v)) return truncate(v.replace(' ', 'T'));
   // US-style M/D/YYYY H:MM[:SS]
   const us = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (us) {
-    const [, mm, dd, yyyy, hh, mi, ss] = us;
-    return `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}T${hh.padStart(2,'0')}:${mi}:${ss || '00'}`;
+    const [, mm, dd, yyyy, hh, mi] = us;
+    return `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}T${hh.padStart(2,'0')}:${mi}:00`;
   }
   const d = new Date(v);
-  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0,19);
+  if (!Number.isNaN(d.getTime())) return truncate(d.toISOString());
   return v;
 }
 
