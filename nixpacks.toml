@@ -1,0 +1,12 @@
+[phases.setup]
+nixPkgs = ["nodejs_22", "python3", "gcc", "gnumake"]
+
+[phases.install]
+cmds = [
+  "npm ci",
+  "python3 -m venv /app/.venv",
+  "/app/.venv/bin/pip install webull-openapi-python-sdk --quiet"
+]
+
+[start]
+cmd = "node server/index.js"
