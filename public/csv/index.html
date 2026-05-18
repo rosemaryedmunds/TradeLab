@@ -149,9 +149,10 @@ const $ = id => document.getElementById(id);
 const money = (x,d=0) => (x>=0?'+$':'-$') + Math.abs(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct = x => { if(!Number.isFinite(x)) return '0.0%'; const sign=x>=0?'+':''; const ax=Math.abs(x); if(ax>0&&ax<1) return sign+x.toFixed(2)+'%'; return sign+x.toFixed(1)+'%'; };
 function cls(x){return x>=0?'good':'bad'}
-// Raw entry_dt / exit_dt strings come from IBKR exports in Eastern Time. We
-// convert to Central for display and RTH bucketing (8:30-15:00 CT).
-const SOURCE_TZ='America/New_York', DISPLAY_TZ='America/Chicago';
+// Stored entry_dt / exit_dt are wall-clock in the user's local TZ (Central).
+// SOURCE_TZ == DISPLAY_TZ makes parseSourceMs a no-op pass-through; RTH
+// bucketing (8:30-15:00 CT) then operates on real times.
+const SOURCE_TZ='America/Chicago', DISPLAY_TZ='America/Chicago';
 function tzParts(ms,timeZone){const out={}, f=new Intl.DateTimeFormat('en-CA',{timeZone,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); for(const p of f.formatToParts(new Date(ms))) out[p.type]=p.value; if(out.hour==='24') out.hour='00'; return out;}
 function tzOffsetMinutes(ms,timeZone){const p=tzParts(ms,timeZone); const asUTC=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second); return (asUTC-ms)/60000;}
 function parseSourceMs(s){if(typeof s==='number') return s; const str=String(s||'').trim(); if(!str) return NaN; if(/Z$|[+-]\d{2}:?\d{2}$/.test(str)) return Date.parse(str.replace(' ','T')); const m=str.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); if(!m) return Date.parse(str.replace(' ','T')); const naive=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)); let off=tzOffsetMinutes(naive,SOURCE_TZ); let ms=naive-off*60000; const off2=tzOffsetMinutes(ms,SOURCE_TZ); if(off2!==off) ms=naive-off2*60000; return ms;}

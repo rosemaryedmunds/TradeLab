@@ -73,7 +73,7 @@ const money = (x,d=0) => (x>=0?'+$':'-$') + Math.abs(x).toLocaleString(undefined
 const pct = x => (x>=0?'+':'') + x.toFixed(1) + '%';
 function cls(x){return x>=0?'good':'bad'}
 function esc(v){return String(v==null?'':v).replace(/[&<>'\"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[ch]));}
-const SOURCE_TZ = 'America/New_York';
+const SOURCE_TZ = 'America/Chicago';
 const DISPLAY_TZ = 'America/Chicago';
 function tzParts(ms, timeZone){
   const out={};
@@ -107,7 +107,7 @@ function sessionBucket(s){const m=localMinutes(s); if(m>=510&&m<690)return 'Morn
 const toMs = (s)=>parseSourceMs(s); // route through binding so memoization patch applies
 const fmtDT = s => {const t=displayHMFromMs(toMs(s)); return `${t.month}-${t.day} ${String(t.h).padStart(2,'0')}:${String(t.m).padStart(2,'0')} CT`;};
 function etMinutes(s){const m=String(s||'').match(/T?(\d{2}):(\d{2})/); if(!m) return NaN; return (+m[1])*60 + (+m[2]);}
-function inSession(t){ if(sessionMode==='all') return true; const m=etMinutes(t.entry_dt); if(!Number.isFinite(m)) return false; const rth=m>=540 && m<=975; return sessionMode==='rth' ? rth : !rth; }
+function inSession(t){ if(sessionMode==='all') return true; const m=etMinutes(t.entry_dt); if(!Number.isFinite(m)) return false; const rth=m>=510 && m<=900; return sessionMode==='rth' ? rth : !rth; }
 function axisBaseTrades(){return trades.filter(t => inSession(t) && (selectedDays.size===0 || selectedDays.has(t.exit_date)));}
 function currentBaseTrades(){return axisBaseTrades().filter(t => scatterMode==='none' || (scatterMode==='include' ? scatterIds.has(t.id) : !scatterIds.has(t.id)));}
 function adjustedTrade(t){ if(!(scenarioActive && scenarioIds.has(t.id) && t.pnl_pct < thresholdPct)) return t; const net = t.entry_gross_cost * thresholdPct / 100; return {...t, net_pnl: net, gross_pnl: net - t.costs, pnl_pct: thresholdPct, scenario_moved: true}; }
