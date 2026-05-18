@@ -33,7 +33,7 @@
   .wiz-step.done { color:var(--text); }
   .wiz-sep { flex:1; height:1px; background:var(--line-soft); }
   .wiz-pane { min-height: 220px; }
-  .drop { border:1.5px dashed var(--line); border-radius:14px; padding:30px; text-align:center;
+  .drop { display:block; border:1.5px dashed var(--line); border-radius:14px; padding:30px; text-align:center;
     background:#0a0b0e; transition:border-color .15s ease, background .15s ease; cursor:pointer; }
   .drop.drag { border-color:var(--amber); background:var(--amber-soft); }
   .drop .icon { font-family:var(--serif); font-size:32px; color:var(--amber); }
@@ -691,7 +691,8 @@ function openCsvWizard() {
       state.preview = j;
       state.step = 3; render();
     } catch (e) {
-      root.innerHTML += `<div class="err-pane">${xesc(e.message)}</div>
+      root.innerHTML = `<h3 style="margin-top:0;">Preview</h3>${stepsHtml()}
+        <div class="wiz-pane"><div class="err-pane">${xesc(e.message)}</div></div>
         <div class="wiz-foot"><button class="btn ghost" id="back">← back</button></div>`;
       root.querySelector('#back').addEventListener('click', () => { state.step = 2; render(); });
     }
@@ -760,7 +761,8 @@ function openCsvWizard() {
       state.result = j;
       state.step = 4; render();
     } catch (e) {
-      root.innerHTML += `<div class="err-pane">${xesc(e.message)}</div>
+      root.innerHTML = `<h3 style="margin-top:0;">Import failed</h3>${stepsHtml()}
+        <div class="wiz-pane"><div class="err-pane">${xesc(e.message)}</div></div>
         <div class="wiz-foot"><button class="btn ghost" id="back">← back</button></div>`;
       root.querySelector('#back').addEventListener('click', () => { state.step = 3; render(); });
     }

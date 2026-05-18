@@ -82,6 +82,29 @@ function addColumnIfMissing(table, col, def) {
 }
 addColumnIfMissing('trades', 'import_id', 'INTEGER');
 
+// v1→v2: the legacy imports table had `user_id INTEGER NOT NULL` with a FK to
+// users(id). Single-user mode never supplies a user_id, so INSERTs fail with
+// "NOT NULL constraint failed: imports.user_id". Rebuild the table without it.
+// (imports is an audit log of CSV uploads — losing rows here is harmless.)
+{
+  const importsCols = db.prepare(`PRAGMA table_info(imports)`).all();
+  const userIdCol = importsCols.find(c => c.name === 'user_id');
+  if (userIdCol && userIdCol.notnull) {
+    db.exec(`
+      DROP TABLE imports;
+      CREATE TABLE imports (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename      TEXT,
+        mode          TEXT,
+        inserted      INTEGER NOT NULL DEFAULT 0,
+        updated       INTEGER NOT NULL DEFAULT 0,
+        skipped       INTEGER NOT NULL DEFAULT 0,
+        created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      );
+    `);
+  }
+}
+
 export function tradeCount() {
   return db.prepare('SELECT COUNT(*) AS n FROM trades').get().n;
 }
