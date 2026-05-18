@@ -404,18 +404,20 @@ app.get('/api/metrics/overall', (req, res) => {
 
 app.get('/api/metrics/daily/:date', (req, res) => {
   const date = req.params.date;
-  const trades = allEnrichedTrades('WHERE substr(entry_dt,1,10) = ?', [date]);
+  // Daily attribution = exit date. Overnight trades realize their P/L on the
+  // session they close in, matching broker statements.
+  const trades = allEnrichedTrades('WHERE substr(exit_dt,1,10) = ?', [date]);
   const summary = summarize(trades);
 
-  const sorted = [...trades].sort((a,b)=>(a.entry_dt||'').localeCompare(b.entry_dt||''));
+  const sorted = [...trades].sort((a,b)=>(a.exit_dt||'').localeCompare(b.exit_dt||''));
   let cum = 0;
   const curve = sorted.map(t => {
     cum += t.net_pnl || 0;
     return { entry_dt: t.entry_dt, exit_dt: t.exit_dt, id: t.id, net_pnl: t.net_pnl, cum_pnl: r2(cum) };
   });
 
-  const prev = db.prepare(`SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades WHERE substr(entry_dt,1,10) < ? ORDER BY d DESC LIMIT 1`).get(date);
-  const next = db.prepare(`SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades WHERE substr(entry_dt,1,10) > ? ORDER BY d ASC LIMIT 1`).get(date);
+  const prev = db.prepare(`SELECT DISTINCT substr(exit_dt,1,10) AS d FROM trades WHERE exit_dt IS NOT NULL AND substr(exit_dt,1,10) < ? ORDER BY d DESC LIMIT 1`).get(date);
+  const next = db.prepare(`SELECT DISTINCT substr(exit_dt,1,10) AS d FROM trades WHERE exit_dt IS NOT NULL AND substr(exit_dt,1,10) > ? ORDER BY d ASC LIMIT 1`).get(date);
 
   res.json({
     date, summary, trades: sorted, curve,
@@ -491,7 +493,8 @@ app.get('/api/doctor', (req, res) => {
 });
 
 app.get('/api/dates', (req, res) => {
-  const rows = db.prepare(`SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades ORDER BY d DESC`).all();
+  // Trading session dates = days with at least one closed trade (by exit date).
+  const rows = db.prepare(`SELECT DISTINCT substr(exit_dt,1,10) AS d FROM trades WHERE exit_dt IS NOT NULL ORDER BY d DESC`).all();
   res.json({ dates: rows.map(r => r.d) });
 });
 

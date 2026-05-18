@@ -41,12 +41,15 @@ export function renderToday() {
   const all = legacyTrades();
   if (!all.length) return inject(html, []);
 
+  // "Today" = trades that *closed* on the latest session, matching how
+  // broker statements book realized P/L. An overnight position entered the
+  // prior day belongs to the day its proceeds hit (exit_date), not entry.
   const latest = db.prepare(
-    "SELECT DISTINCT substr(entry_dt,1,10) AS d FROM trades ORDER BY d DESC LIMIT 1"
+    "SELECT DISTINCT substr(exit_dt,1,10) AS d FROM trades WHERE exit_dt IS NOT NULL ORDER BY d DESC LIMIT 1"
   ).get()?.d;
   if (!latest) return inject(html, all);
 
-  const dayTrades = all.filter(t => t.entry_date === latest);
+  const dayTrades = all.filter(t => t.exit_date === latest);
   html = inject(html, dayTrades);
 
   // Replace the baked-in date everywhere (title, subtitle, chart-base attr).
