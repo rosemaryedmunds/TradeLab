@@ -114,7 +114,7 @@ button.pill.action:hover {
 
 /* Calendar day cells — let JavaScript inline styles control the background */
 button.day {
-  background: unset !important;
+  background: unset;
   color: #f4f1ea !important;
   border: 1px solid rgba(255,255,255,.10) !important;
   border-radius: 16px !important;
