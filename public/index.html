@@ -20,22 +20,19 @@ table{width:100%;border-collapse:separate;border-spacing:0 10px;font-size:14px}t
 <body>
 <div class="page">
   <div class="hero">
-    <div>
-      
-      <div class="logo-title">
-        <img src="/images/rose-logo.png" alt="Rose Trading" onerror="this.style.display='none'"/>
-        <div class="title">Rose's Trading Journal</div>
-      </div>
-      <div class="sub"></div>
+  <div>
+    <div class="logo-title">
+      <img src="/images/rose-logo.png" alt="Rose Trading" onerror="this.style.display='none'"/>
+      <div class="title">Rose's Journal</div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-  <div class="badge"></div>
-  <a class="badge" href="/" style="color:#ffd166;text-decoration:none;">Overall</a>
-  <a class="badge" href="/today" style="color:#ffd166;text-decoration:none;">Daily</a>
-  <a class="badge" href="/trades" style="color:#ffd166;text-decoration:none;">Manage</a>
-  <a class="badge" href="/doctor" style="color:#ffd166;text-decoration:none;">Doctor</a>
-</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+      <a class="badge" href="/" style="color:#ffd166;text-decoration:none;">Overall</a>
+      <a class="badge" href="/today" style="color:#ffd166;text-decoration:none;">Daily</a>
+      <a class="badge" href="/trades" style="color:#ffd166;text-decoration:none;">Manage</a>
+      <a class="badge" href="/doctor" style="color:#ffd166;text-decoration:none;">Doctor</a>
+    </div>
   </div>
+</div>
   <div class="filterbar">
     <button class="pill action" id="clearDays">Clear day filter</button>
     <button class="pill action" id="clearSelection">Clear scatter filter</button>
